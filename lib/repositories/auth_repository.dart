@@ -59,6 +59,23 @@ class AuthRepository {
     );
   }
 
+  /// Signs in or registers the demo dentist for instant testing without SMS hurdles.
+  Future<UserCredential> signInOrRegisterDemoDentist() async {
+    const demoEmail = 'dentist.demo@riodent.com';
+    const demoPassword = 'RioDentDemoPassword2026!';
+    try {
+      return await _firebaseAuth.signInWithEmailAndPassword(
+        email: demoEmail,
+        password: demoPassword,
+      );
+    } on FirebaseAuthException {
+      return await _firebaseAuth.createUserWithEmailAndPassword(
+        email: demoEmail,
+        password: demoPassword,
+      );
+    }
+  }
+
   /// Signs out the current user.
   Future<void> signOut() async {
     await _firebaseAuth.signOut();

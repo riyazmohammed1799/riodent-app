@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_providers.dart';
+import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
@@ -24,6 +25,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleInstantDemoLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final authRepo = ref.read(authRepositoryProvider);
+    final userRepo = ref.read(userRepositoryProvider);
+
+    try {
+      final credential = await authRepo.signInOrRegisterDemoDentist();
+      final user = credential.user;
+      if (user != null) {
+        final existing = await userRepo.getUser(user.uid);
+        if (existing == null) {
+          await userRepo.createUser(
+            uid: user.uid,
+            phone: '+919876543210',
+            displayName: 'Dr. Priya Sharma',
+            email: user.email,
+            role: AppConstants.roleDentist,
+          );
+          await userRepo.updateDentistProfile(
+            uid: user.uid,
+            displayName: 'Dr. Priya Sharma',
+            clinicName: 'Smile Care Dental Clinic',
+            clinicAddress: '123 Brigade Road, Bengaluru, Karnataka 560001',
+            email: user.email,
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Instant demo failed: $e';
+      });
+    }
   }
 
   Future<void> _handleSendOtp() async {
@@ -183,6 +224,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     color: AppTheme.textHint,
                   ),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.rocket_launch_rounded, color: AppTheme.primaryColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Quick Demo Access',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Skip SMS & region configuration completely. Tap below to log in as Dr. Priya Sharma immediately.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.secondaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: _isLoading ? null : _handleInstantDemoLogin,
+                        icon: const Icon(Icons.login_rounded),
+                        label: const Text('1-Click Instant Demo Login'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
