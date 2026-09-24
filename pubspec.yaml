@@ -1,0 +1,51 @@
+name: riodent
+description: "RioDent - Dental Technician Booking"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
+  firebase_storage: ^13.6.0
+
+  # State Management
+  flutter_riverpod: ^3.4.3
+  riverpod_annotation: ^4.0.7
+
+  # Routing
+  go_router: ^18.0.1
+
+  # Media
+  image_picker: ^1.2.3
+  cached_network_image: ^4.0.2
+  # video_compress — will be added in Phase 3 (video upload feature)
+
+  # Location
+  geolocator: ^14.0.3
+  geocoding: ^5.0.0
+
+  # Utilities
+  intl: ^0.20.3
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^4.0.9
+  build_runner: ^2.16.1
+  riverpod_lint: ^3.1.9
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
