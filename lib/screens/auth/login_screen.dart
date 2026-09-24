@@ -163,6 +163,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : const Text('Get OTP'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          setState(() {
+                            _phoneController.text = '9876543210';
+                            _errorMessage = null;
+                          });
+                        },
+                  icon: const Icon(Icons.touch_app_rounded, size: 18),
+                  label: const Text('Fill Test Number (9876543210)'),
+                ),
                 const SizedBox(height: 24),
                 Text(
                   'By proceeding, you agree to receive an SMS verification code.',

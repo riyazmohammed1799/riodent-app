@@ -197,6 +197,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         )
                       : const Text('Verify & Continue'),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          setState(() {
+                            _otpController.text = '545454';
+                            _errorMessage = null;
+                          });
+                        },
+                  icon: const Icon(Icons.touch_app_rounded, size: 18),
+                  label: const Text('Fill Test OTP (545454)'),
+                ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: _isLoading ? null : _handleResendCode,
