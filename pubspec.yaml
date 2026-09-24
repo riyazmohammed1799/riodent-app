@@ -30,7 +30,7 @@ dependencies:
 
   # Location
   geolocator: ^14.0.3
-  geocoding: ^5.0.0
+  geocoding: 3.0.0
 
   # Utilities
   intl: ^0.20.3

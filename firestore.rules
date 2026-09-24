@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Get user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // USERS collection
+    match /users/{userId} {
+      // Users can read their own document; admin can read any user
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
+      // Users can create their own document on first login (dentist role only)
+      allow create: if isAuthenticated() && isOwner(userId)
+                    && request.resource.data.role == 'dentist';
+
+      // Users can update their own profile (cannot change role; admin can update)
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && request.resource.data.role == resource.data.role)
+        || isAdmin()
+      );
+
+      // No client-side user deletes
+      allow delete: if false;
+    }
+
+    // TECHNICIAN REQUESTS collection
+    match /technicianRequests/{requestId} {
+      // Dentists can read their own requests; admin can read all
+      allow read: if isAuthenticated()
+                  && (resource.data.dentistId == request.auth.uid || isAdmin());
+
+      // Dentists can create requests (must set own dentistId, status must be NEW)
+      allow create: if isAuthenticated()
+                    && request.resource.data.dentistId == request.auth.uid
+                    && request.resource.data.status == 'NEW';
+
+      // Only admin can update requests (status changes, assignment, notes)
+      allow update: if isAuthenticated() && isAdmin();
+
+      // No deletes in V1
+      allow delete: if false;
+    }
+
+    // TECHNICIANS collection
+    match /technicians/{technicianId} {
+      // Anyone authenticated can read
+      allow read: if isAuthenticated();
+
+      // Only admin can write
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // APP SETTINGS collection
+    match /appSettings/{document} {
+      // Anyone authenticated can read (needed for fee and configuration display)
+      allow read: if isAuthenticated();
+
+      // Only admin can write
+      allow write: if isAuthenticated() && isAdmin();
+    }
+  }
+}

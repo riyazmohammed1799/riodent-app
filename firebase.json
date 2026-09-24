@@ -1,0 +1,30 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "riodentdev",
+          "appId": "1:956782006207:android:cd1d7960a4c4700fe4db0a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "riodentdev",
+          "configurations": {
+            "android": "1:956782006207:android:cd1d7960a4c4700fe4db0a",
+            "ios": "1:956782006207:ios:e70da532c650be80e4db0a",
+            "web": "1:956782006207:web:11ccf54bf69bc7d4e4db0a"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
