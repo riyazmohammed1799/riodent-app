@@ -1,14 +1,32 @@
 {
   "project_info": {
-    "project_number": "956782006207",
-    "firebase_url": "https://riodentdev-default-rtdb.firebaseio.com",
-    "project_id": "riodentdev",
-    "storage_bucket": "riodentdev.firebasestorage.app"
+    "project_number": "1085269643387",
+    "project_id": "equip-services-dev",
+    "storage_bucket": "equip-services-dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:956782006207:android:cd1d7960a4c4700fe4db0a",
+        "mobilesdk_app_id": "1:1085269643387:android:6d1d2782b9884c7b1ad2de",
+        "android_client_info": {
+          "package_name": "com.aistudio.riodent.kqvw"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085269643387:android:57beff18a7a651941ad2de",
         "android_client_info": {
           "package_name": "com.riodent.riodent"
         }
@@ -16,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA61dwkNYCn_b5sxOsfXYjcfeTb_gEcR3s"
+          "current_key": "AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg"
         }
       ],
       "services": {

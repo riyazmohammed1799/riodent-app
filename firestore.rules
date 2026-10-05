@@ -2,13 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Get user role
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-
+    // Helper: Check if user is admin
     function isAdmin() {
-      return getUserRole() == 'admin';
+      return request.auth.token.email == 'admin@riodent.com'
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     function isAuthenticated() {
@@ -24,9 +22,9 @@ service cloud.firestore {
       // Users can read their own document; admin can read any user
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
 
-      // Users can create their own document on first login (dentist role only)
+      // Users can create their own document on first login (dentist or admin)
       allow create: if isAuthenticated() && isOwner(userId)
-                    && request.resource.data.role == 'dentist';
+                    && request.resource.data.role in ['dentist', 'admin'];
 
       // Users can update their own profile (cannot change role; admin can update)
       allow update: if isAuthenticated() && (

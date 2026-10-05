@@ -131,9 +131,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Setup Clinic Profile'),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Sign Out',
+            onPressed: () async => await ref.read(authRepositoryProvider).signOut(),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

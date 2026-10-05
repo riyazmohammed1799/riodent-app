@@ -3,21 +3,25 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "riodentdev",
-          "appId": "1:956782006207:android:cd1d7960a4c4700fe4db0a",
+          "projectId": "equip-services-dev",
+          "appId": "1:1085269643387:android:57beff18a7a651941ad2de",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "riodentdev",
+          "projectId": "equip-services-dev",
           "configurations": {
-            "android": "1:956782006207:android:cd1d7960a4c4700fe4db0a",
-            "ios": "1:956782006207:ios:e70da532c650be80e4db0a",
-            "web": "1:956782006207:web:11ccf54bf69bc7d4e4db0a"
+            "android": "1:1085269643387:android:57beff18a7a651941ad2de",
+            "web": "1:1085269643387:web:e518f7475e3abd791ad2de"
           }
         }
       }
+    }
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
     }
   },
   "firestore": {
@@ -26,5 +30,19 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

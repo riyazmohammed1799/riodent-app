@@ -22,6 +22,18 @@ class UserRepository {
     });
   }
 
+  /// Streams all registered dentists for the admin directory.
+  Stream<List<UserModel>> streamAllDentists() {
+    return _usersRef
+        .where('role', isEqualTo: AppConstants.roleDentist)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
   /// Fetches the profile for a given [uid] once.
   Future<UserModel?> getUser(String uid) async {
     final doc = await _usersRef.doc(uid).get();
@@ -56,6 +68,24 @@ class UserRepository {
     }
   }
 
+  /// Ensures an admin profile exists in Firestore.
+  Future<void> ensureAdminProfile({
+    required String uid,
+    required String email,
+  }) async {
+    final now = DateTime.now();
+    await _usersRef.doc(uid).set({
+      'uid': uid,
+      'displayName': 'RioDent Operations Admin',
+      'email': email,
+      'phone': '+918000000000',
+      'role': AppConstants.roleAdmin,
+      'profileComplete': true,
+      'createdAt': now,
+      'updatedAt': now,
+    }, SetOptions(merge: true));
+  }
+
   /// Updates profile information for a dentist.
   Future<void> updateDentistProfile({
     required String uid,
@@ -66,15 +96,19 @@ class UserRepository {
     double? clinicLongitude,
     String? email,
   }) async {
-    await _usersRef.doc(uid).update({
+    final data = <String, dynamic>{
+      'uid': uid,
       'displayName': displayName.trim(),
       'clinicName': clinicName.trim(),
       'clinicAddress': clinicAddress.trim(),
-      'clinicLatitude': ?clinicLatitude,
-      'clinicLongitude': ?clinicLongitude,
-      if (email != null && email.isNotEmpty) 'email': email.trim(),
       'profileComplete': true,
+      'role': AppConstants.roleDentist,
       'updatedAt': Timestamp.now(),
-    });
+    };
+    if (clinicLatitude != null) data['clinicLatitude'] = clinicLatitude;
+    if (clinicLongitude != null) data['clinicLongitude'] = clinicLongitude;
+    if (email != null && email.isNotEmpty) data['email'] = email.trim();
+
+    await _usersRef.doc(uid).set(data, SetOptions(merge: true));
   }
 }

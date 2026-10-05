@@ -81,8 +81,10 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Request Management'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: reqAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

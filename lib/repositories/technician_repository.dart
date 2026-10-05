@@ -24,6 +24,15 @@ class TechnicianRepository {
     });
   }
 
+  /// Streams all technicians in the roster.
+  Stream<List<TechnicianModel>> streamAllTechnicians() {
+    return _techRef.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => TechnicianModel.fromFirestore(doc))
+          .toList();
+    });
+  }
+
   /// Fetches a technician by ID.
   Future<TechnicianModel?> getTechnician(String id) async {
     final doc = await _techRef.doc(id).get();

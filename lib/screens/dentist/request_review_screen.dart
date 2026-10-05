@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/booking_config_model.dart';
 import '../../models/technician_request_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/request_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 
-/// Screen where dentists review all booking details, visit fees, and submit the request.
+/// Screen where dentists review booking details and confirm technician dispatch.
 class RequestReviewScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> requestData;
 
@@ -28,8 +27,6 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
     setState(() => _isSubmitting = true);
 
     final dentist = widget.requestData['dentist'] as UserModel;
-    final config = widget.requestData['config'] as BookingConfigModel? ??
-        BookingConfigModel.defaultConfig();
     final issueType = widget.requestData['issueType'] as String;
     final issueDescription = widget.requestData['issueDescription'] as String;
 
@@ -50,10 +47,10 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
       photos: const [],
       video: null,
       status: AppConstants.statusNew,
-      listedFee: config.listedFee,
-      payableFee: config.payableFee,
-      currency: config.currency,
-      offerLabel: config.offerEnabled ? config.offerLabel : null,
+      listedFee: 0.0,
+      payableFee: 0.0,
+      currency: 'INR',
+      offerLabel: '100% Free Service',
       createdAt: now,
       updatedAt: now,
     );
@@ -75,14 +72,14 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dentist = widget.requestData['dentist'] as UserModel;
-    final config = widget.requestData['config'] as BookingConfigModel? ??
-        BookingConfigModel.defaultConfig();
     final issueType = widget.requestData['issueType'] as String;
     final issueDescription = widget.requestData['issueDescription'] as String;
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Review Booking'),
+        title: const Text('Review & Confirm'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -90,7 +87,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Clinic Destination
+              // Clinic Destination Card
               Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
@@ -105,12 +102,21 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                           Text('Clinic Location', style: theme.textTheme.titleMedium),
                         ],
                       ),
-                      const Divider(height: 24),
-                      Text(dentist.clinicName ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const Divider(height: 20),
+                      Text(
+                        dentist.clinicName?.isNotEmpty == true ? dentist.clinicName! : 'Clinic Destination',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
                       const SizedBox(height: 4),
-                      Text(dentist.clinicAddress ?? '', style: theme.textTheme.bodyMedium),
-                      const SizedBox(height: 4),
-                      Text('Contact: ${dentist.phone}', style: theme.textTheme.bodySmall),
+                      Text(
+                        dentist.clinicAddress?.isNotEmpty == true ? dentist.clinicAddress! : 'Address on file',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Contact: ${dentist.phone.isNotEmpty ? dentist.phone : (dentist.email ?? 'On file')}',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
@@ -118,7 +124,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
 
               const SizedBox(height: 16),
 
-              // Equipment Issue
+              // Equipment Issue Details
               Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
@@ -128,17 +134,17 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.build_rounded, color: AppTheme.primaryColor),
+                          const Icon(Icons.build_circle_rounded, color: AppTheme.primaryColor),
                           const SizedBox(width: 8),
                           Text('Issue Details', style: theme.textTheme.titleMedium),
                         ],
                       ),
-                      const Divider(height: 24),
-                      Text('Equipment / Category', style: theme.textTheme.labelMedium),
+                      const Divider(height: 20),
+                      Text('Equipment Category', style: theme.textTheme.labelMedium),
                       const SizedBox(height: 2),
-                      Text(issueType, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(issueType, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       const SizedBox(height: 12),
-                      Text('Description', style: theme.textTheme.labelMedium),
+                      Text('Description & Symptoms', style: theme.textTheme.labelMedium),
                       const SizedBox(height: 2),
                       Text(issueDescription, style: theme.textTheme.bodyMedium),
                     ],
@@ -148,7 +154,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
 
               const SizedBox(height: 16),
 
-              // Visit Fee Card
+              // Free Service Policy Guarantee Card
               Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
@@ -158,51 +164,52 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.receipt_long_rounded, color: AppTheme.primaryColor),
+                          const Icon(Icons.verified_rounded, color: AppTheme.successColor),
                           const SizedBox(width: 8),
-                          Text('Visit Fee Breakdown', style: theme.textTheme.titleMedium),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Technician Visit Fee'),
                           Text(
-                            '₹${config.listedFee.toInt()}',
-                            style: const TextStyle(decoration: TextDecoration.lineThrough),
+                            'RioDent Free Service Guarantee',
+                            style: theme.textTheme.titleMedium?.copyWith(color: AppTheme.successColor),
                           ),
                         ],
                       ),
-                      if (config.offerEnabled) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              config.offerLabel,
-                              style: const TextStyle(color: AppTheme.successColor),
-                            ),
-                            Text(
-                              '- ₹${(config.listedFee - config.payableFee).toInt()}',
-                              style: const TextStyle(
-                                color: AppTheme.successColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const Divider(height: 24),
+                      const Divider(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Payable Now', style: theme.textTheme.titleMedium),
+                          const Text('Technician Dispatch Fee'),
                           Text(
-                            '₹${config.payableFee.toInt()}',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: AppTheme.primaryColor,
+                            '₹0 (FREE)',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppTheme.successColor,
                               fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Clinic Inspection Charges'),
+                          Text(
+                            '₹0 (COMPLIMENTARY)',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppTheme.successColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Payable', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            '₹0',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ],
@@ -212,7 +219,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                 ),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _handleSubmitRequest,
@@ -220,10 +227,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Text('Confirm & Book Technician'),
               ),

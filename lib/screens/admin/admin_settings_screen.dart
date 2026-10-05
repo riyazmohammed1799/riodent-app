@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/booking_config_model.dart';
 import '../../providers/settings_providers.dart';
 import '../../theme/app_theme.dart';
 
-/// Screen where the admin edits dynamic business configurations (fees, offers, equipment types).
+/// Screen where the admin manages equipment categories and system policies.
 class AdminSettingsScreen extends ConsumerStatefulWidget {
   const AdminSettingsScreen({super.key});
 
@@ -13,48 +14,24 @@ class AdminSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _listedFeeController;
-  late TextEditingController _payableFeeController;
-  late TextEditingController _offerLabelController;
-  late TextEditingController _newIssueTypeController;
-
-  bool _offerEnabled = true;
+  final _newIssueTypeController = TextEditingController();
   List<String> _issueTypes = [];
   bool _isInitialized = false;
   bool _isSaving = false;
 
   @override
-  void initState() {
-    super.initState();
-    _listedFeeController = TextEditingController();
-    _payableFeeController = TextEditingController();
-    _offerLabelController = TextEditingController();
-    _newIssueTypeController = TextEditingController();
-  }
-
-  @override
   void dispose() {
-    _listedFeeController.dispose();
-    _payableFeeController.dispose();
-    _offerLabelController.dispose();
     _newIssueTypeController.dispose();
     super.dispose();
   }
 
   void _initFields(BookingConfigModel config) {
     if (_isInitialized) return;
-    _listedFeeController.text = config.listedFee.toInt().toString();
-    _payableFeeController.text = config.payableFee.toInt().toString();
-    _offerLabelController.text = config.offerLabel;
-    _offerEnabled = config.offerEnabled;
     _issueTypes = List<String>.from(config.issueTypes);
     _isInitialized = true;
   }
 
   Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSaving = true);
     final repo = ref.read(settingsRepositoryProvider);
 
@@ -62,11 +39,11 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         BookingConfigModel.defaultConfig();
 
     final updated = BookingConfigModel(
-      listedFee: double.tryParse(_listedFeeController.text) ?? currentConfig.listedFee,
-      payableFee: double.tryParse(_payableFeeController.text) ?? currentConfig.payableFee,
-      currency: currentConfig.currency,
-      offerEnabled: _offerEnabled,
-      offerLabel: _offerLabelController.text.trim(),
+      listedFee: 0.0,
+      payableFee: 0.0,
+      currency: 'INR',
+      offerEnabled: false,
+      offerLabel: '100% Free Service',
       maxPhotos: currentConfig.maxPhotos,
       maxPhotoSizeMB: currentConfig.maxPhotoSizeMB,
       maxVideoSizeMB: currentConfig.maxVideoSizeMB,
@@ -79,7 +56,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       await repo.updateBookingConfig(updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings updated successfully')),
+        const SnackBar(content: Text('Configuration saved to Firebase')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -107,8 +84,10 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Booking Configuration'),
+        title: const Text('System Configuration'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: configAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -118,138 +97,120 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Fee Configuration Card
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTheme.spacingMd),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Free Model Policy Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text('Visit Pricing (INR)', style: theme.textTheme.titleMedium),
-                          const Divider(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Standard Listed Fee (₹)', style: theme.textTheme.labelMedium),
-                                    const SizedBox(height: 6),
-                                    TextFormField(
-                                      controller: _listedFeeController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(hintText: '99'),
-                                    ),
-                                  ],
+                          const Icon(Icons.verified_rounded, color: AppTheme.successColor, size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            'App Service Model: 100% Free',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.successColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'RioDent is a complimentary service platform. Clinics are never charged fees for technician dispatch, diagnosis, or booking requests.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: const Text(
+                          'Charge Policy: ₹0 across all categories',
+                          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Issue Types Configuration
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Equipment / Problem Categories', style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Doctors will see these categories when booking assistance.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const Divider(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _newIssueTypeController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Add new category (e.g. Ultrasonic Scaler)',
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Actual Payable Fee (₹)', style: theme.textTheme.labelMedium),
-                                    const SizedBox(height: 6),
-                                    TextFormField(
-                                      controller: _payableFeeController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(hintText: '0'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Promotional Offer Active'),
-                            subtitle: const Text('Display promotional discount banner to dentists'),
-                            value: _offerEnabled,
-                            onChanged: (val) => setState(() => _offerEnabled = val),
-                          ),
-                          if (_offerEnabled) ...[
-                            const SizedBox(height: 8),
-                            Text('Offer Label Text', style: theme.textTheme.labelMedium),
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: _offerLabelController,
-                              decoration: const InputDecoration(hintText: 'Limited Launch Offer'),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filled(
+                              onPressed: _addIssueType,
+                              icon: const Icon(Icons.add),
                             ),
                           ],
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _issueTypes.map((type) {
+                            return Chip(
+                              label: Text(type),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                setState(() => _issueTypes.remove(type));
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 28),
 
-                  // Issue Types Configuration
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppTheme.spacingMd),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Equipment / Issue Categories', style: theme.textTheme.titleMedium),
-                          const Divider(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _newIssueTypeController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Add new category (e.g. Suction)',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton.filled(
-                                onPressed: _addIssueType,
-                                icon: const Icon(Icons.add),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _issueTypes.map((type) {
-                              return Chip(
-                                label: Text(type),
-                                deleteIcon: const Icon(Icons.close, size: 16),
-                                onDeleted: () {
-                                  setState(() => _issueTypes.remove(type));
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : _handleSave,
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Save Configuration to Firebase'),
-                  ),
-                ],
-              ),
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _handleSave,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save Categories to Firebase'),
+                ),
+              ],
             ),
           );
         },

@@ -1,30 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/request_providers.dart';
 import '../../providers/technician_providers.dart';
+import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 
-/// Admin overview dashboard showing request metrics and operation controls.
-class AdminDashboardScreen extends ConsumerWidget {
+/// Comprehensive operational dashboard for RioDent administrators.
+/// Allows viewing all service bookings, technician dispatching, and registered clinic directory.
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final requestsAsync = ref.watch(adminRequestsProvider);
     final authRepo = ref.read(authRepositoryProvider);
-    final techRepo = ref.read(technicianRepositoryProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const Text('RioDent Dispatch Console'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'App Configuration',
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Equipment Settings',
             onPressed: () => context.push('/admin/settings'),
           ),
           IconButton(
@@ -33,200 +54,535 @@ class AdminDashboardScreen extends ConsumerWidget {
             onPressed: () async => await authRepo.signOut(),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppTheme.primaryColor,
+          unselectedLabelColor: AppTheme.textSecondary,
+          indicatorColor: AppTheme.primaryColor,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: const [
+            Tab(
+              icon: Icon(Icons.receipt_long_rounded, size: 20),
+              text: 'Bookings Queue',
+            ),
+            Tab(
+              icon: Icon(Icons.local_hospital_rounded, size: 20),
+              text: 'Registered Doctors',
+            ),
+            Tab(
+              icon: Icon(Icons.engineering_rounded, size: 20),
+              text: 'Technicians',
+            ),
+          ],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(adminRequestsProvider);
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Metrics Grid
-              requestsAsync.when(
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                error: (e, _) => Text('Error loading metrics: $e'),
-                data: (requests) {
-                  final newCount = requests.where((r) => r.isNew).length;
-                  final assignedCount = requests.where((r) => r.isAssigned).length;
-                  final inProgressCount = requests.where((r) => r.isInProgress).length;
-                  final completedCount = requests.where((r) => r.isCompleted).length;
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildBookingsQueueTab(theme),
+          _buildDoctorsDirectoryTab(theme),
+          _buildTechniciansTab(theme),
+        ],
+      ),
+    );
+  }
 
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MetricCard(
-                              label: 'New Requests',
-                              count: newCount,
-                              color: AppTheme.statusNew,
-                              icon: Icons.mark_email_unread_rounded,
-                              onTap: () {
-                                ref.read(adminStatusFilterProvider.notifier).setFilter(AppConstants.statusNew);
-                                context.push('/admin/requests');
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MetricCard(
-                              label: 'Assigned',
-                              count: assignedCount,
-                              color: AppTheme.statusAssigned,
-                              icon: Icons.assignment_ind_rounded,
-                              onTap: () {
-                                ref.read(adminStatusFilterProvider.notifier).setFilter(AppConstants.statusAssigned);
-                                context.push('/admin/requests');
-                              },
-                            ),
-                          ),
-                        ],
+  // ── Tab 1: Bookings Queue ───────────────────────────────────────
+  Widget _buildBookingsQueueTab(ThemeData theme) {
+    final requestsAsync = ref.watch(adminRequestsProvider);
+    final activeFilter = ref.watch(adminStatusFilterProvider);
+    final dateFormat = DateFormat('MMM dd, hh:mm a');
+
+    final filters = [
+      'ALL',
+      AppConstants.statusNew,
+      AppConstants.statusAssigned,
+      AppConstants.statusInProgress,
+      AppConstants.statusCompleted,
+    ];
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(adminRequestsProvider),
+      child: Column(
+        children: [
+          // Filter Chips
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: filters.map((filter) {
+                  final isSelected = activeFilter == filter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(filter == 'ALL' ? 'All Bookings' : AppTheme.getStatusLabel(filter)),
+                      selected: isSelected,
+                      onSelected: (_) {
+                        ref.read(adminStatusFilterProvider.notifier).setFilter(filter);
+                      },
+                      selectedColor: AppTheme.primaryLight,
+                      labelStyle: TextStyle(
+                        color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 12,
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MetricCard(
-                              label: 'In Progress',
-                              count: inProgressCount,
-                              color: AppTheme.statusInProgress,
-                              icon: Icons.engineering_rounded,
-                              onTap: () {
-                                ref.read(adminStatusFilterProvider.notifier).setFilter(AppConstants.statusInProgress);
-                                context.push('/admin/requests');
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _MetricCard(
-                              label: 'Completed',
-                              count: completedCount,
-                              color: AppTheme.statusCompleted,
-                              icon: Icons.check_circle_outline_rounded,
-                              onTap: () {
-                                ref.read(adminStatusFilterProvider.notifier).setFilter(AppConstants.statusCompleted);
-                                context.push('/admin/requests');
-                              },
-                            ),
-                          ),
-                        ],
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.primaryColor : AppTheme.cardBorderColor,
                       ),
-                    ],
+                    ),
                   );
-                },
+                }).toList(),
               ),
+            ),
+          ),
+          const Divider(height: 1),
 
-              const SizedBox(height: 24),
+          Expanded(
+            child: requestsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error loading requests: $e')),
+              data: (requests) {
+                if (requests.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        'No requests currently in "${activeFilter == "ALL" ? "All Bookings" : AppTheme.getStatusLabel(activeFilter)}"',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+                      ),
+                    ),
+                  );
+                }
 
-              // Operational Actions
-              Text('Operations', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
+                return ListView.separated(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  itemCount: requests.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final req = requests[index];
+                    final statusColor = AppTheme.getStatusColor(req.status);
 
-              Card(
-                margin: EdgeInsets.zero,
+                    return Card(
+                      margin: EdgeInsets.zero,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        onTap: () => context.push('/admin/requests/${req.id}'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.spacingMd),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      req.clinicName.isNotEmpty ? req.clinicName : 'Dental Clinic',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                    ),
+                                    child: Text(
+                                      AppTheme.getStatusLabel(req.status),
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Doctor: ${req.dentistName} • Phone: ${req.dentistPhone}',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Equipment: ${req.issueType} — ${req.issueDescription}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                              const Divider(height: 18),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.verified_rounded, size: 14, color: AppTheme.successColor),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Charge: ₹0 (FREE APP)',
+                                        style: TextStyle(
+                                          color: AppTheme.successColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    dateFormat.format(req.createdAt),
+                                    style: theme.textTheme.labelSmall,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      req.assignedTechnicianName != null
+                                          ? 'Technician: ${req.assignedTechnicianName}'
+                                          : '⚠️ No technician assigned yet',
+                                      style: TextStyle(
+                                        color: req.assignedTechnicianName != null
+                                            ? AppTheme.primaryColor
+                                            : AppTheme.warningColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size(90, 32),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    ),
+                                    onPressed: () => context.push('/admin/assign/${req.id}'),
+                                    child: Text(req.assignedTechnicianName == null ? 'Assign' : 'Reassign'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Tab 2: Registered Doctors Directory ─────────────────────────
+  Widget _buildDoctorsDirectoryTab(ThemeData theme) {
+    final dentistsAsync = ref.watch(registeredDentistsProvider);
+    final dateFormat = DateFormat('MMM dd, yyyy');
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(registeredDentistsProvider),
+      child: dentistsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error loading doctor directory: $e')),
+        data: (dentists) {
+          if (dentists.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ListTile(
-                      leading: const Icon(Icons.list_alt_rounded, color: AppTheme.primaryColor),
-                      title: const Text('All Requests Queue'),
-                      subtitle: const Text('View and filter full dispatch queue'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () {
-                        ref.read(adminStatusFilterProvider.notifier).setFilter('ALL');
-                        context.push('/admin/requests');
-                      },
+                    const Icon(Icons.people_outline_rounded, size: 56, color: AppTheme.textHint),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Doctors Registered Yet',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.tune_rounded, color: AppTheme.primaryColor),
-                      title: const Text('Fee & Settings Manager'),
-                      subtitle: const Text('Configure visit fee, offer labels, equipment types'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/admin/settings'),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.group_add_rounded, color: AppTheme.primaryColor),
-                      title: const Text('Seed Technician Roster'),
-                      subtitle: const Text('Initialize the 3 standard certified technicians if empty'),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                      onTap: () async {
-                        await techRepo.seedInitialTechniciansIfEmpty();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Technicians checked / seeded successfully')),
-                          );
-                        }
-                      },
+                    const SizedBox(height: 6),
+                    const Text(
+                      'When doctors sign up or register clinics, their profiles will appear here.',
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Registered Doctors: ${dentists.length}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: const Text(
+                        'Active Network',
+                        style: TextStyle(color: AppTheme.successColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  itemCount: dentists.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final dr = dentists[index];
+                    return Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTheme.spacingMd),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: AppTheme.primaryLight,
+                                  child: const Icon(Icons.person_rounded, color: AppTheme.primaryColor),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        dr.displayName.isNotEmpty ? dr.displayName : 'Doctor',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      ),
+                                      Text(
+                                        dr.clinicName?.isNotEmpty == true ? dr.clinicName! : 'Clinic name pending',
+                                        style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: dr.profileComplete ? AppTheme.successColor.withValues(alpha: 0.12) : AppTheme.warningColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                  ),
+                                  child: Text(
+                                    dr.profileComplete ? 'Verified' : 'New',
+                                    style: TextStyle(
+                                      color: dr.profileComplete ? AppTheme.successColor : AppTheme.warningColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 18),
+                            if (dr.clinicAddress?.isNotEmpty == true) ...[
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondary),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      dr.clinicAddress!,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textSecondary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  dr.phone.isNotEmpty ? dr.phone : 'Not provided',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'Registered: ${dateFormat.format(dr.createdAt)}',
+                                  style: theme.textTheme.labelSmall,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
-}
 
-class _MetricCard extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
+  // ── Tab 3: Certified Technicians ────────────────────────────────
+  Widget _buildTechniciansTab(ThemeData theme) {
+    final techRepo = ref.read(technicianRepositoryProvider);
+    final techsAsync = ref.watch(techniciansProvider);
 
-  const _MetricCard({
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(techniciansProvider),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: AppTheme.cardBorderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, color: color, size: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Certified Technician Roster', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(110, 36),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          await techRepo.seedInitialTechniciansIfEmpty();
+                          ref.invalidate(techniciansProvider);
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Technicians checked / seeded successfully')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.sync_rounded, size: 16),
+                        label: const Text('Seed Roster'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    count.toString(),
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                    'Certified technicians dispatched to clinics in Bengaluru, Hyderabad, and surrounding areas.',
+                    style: theme.textTheme.bodySmall,
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+
+            techsAsync.when(
+              loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+              error: (e, _) => Center(child: Text('Error loading technicians: $e')),
+              data: (techs) {
+                if (techs.isEmpty) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.engineering_outlined, size: 48, color: AppTheme.textHint),
+                          const SizedBox(height: 12),
+                          const Text('No technicians found in database.'),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () async {
+                              await techRepo.seedInitialTechniciansIfEmpty();
+                              ref.invalidate(techniciansProvider);
+                            },
+                            child: const Text('Seed 3 Standard Technicians'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: techs.map((tech) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTheme.spacingMd),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: AppTheme.secondaryLight,
+                              child: const Icon(Icons.handyman_rounded, color: AppTheme.secondaryColor),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tech.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Specialty: ${tech.specialization}',
+                                    style: TextStyle(color: AppTheme.primaryColor, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Phone: ${tech.phone}',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: tech.isActive ? AppTheme.successColor.withValues(alpha: 0.1) : AppTheme.textHint.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                              ),
+                              child: Text(
+                                tech.isActive ? 'Available' : 'Busy',
+                                style: TextStyle(
+                                  color: tech.isActive ? AppTheme.successColor : AppTheme.textHint,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

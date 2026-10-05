@@ -29,13 +29,18 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedIssueType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an equipment or issue type')),
+        const SnackBar(content: Text('Please select an equipment category')),
       );
       return;
     }
 
     final dentist = ref.read(currentUserProfileProvider).value;
-    if (dentist == null) return;
+    if (dentist == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile not loaded. Please complete your profile first.')),
+      );
+      return;
+    }
 
     final config = ref.read(bookingConfigProvider).value;
 
@@ -54,8 +59,10 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
     final dentist = ref.watch(currentUserProfileProvider).value;
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Book Technician'),
+        title: const Text('Book Dental Technician'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -66,58 +73,89 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Clinic summary card
-                Card(
-                  margin: EdgeInsets.zero,
-                  color: AppTheme.backgroundColor,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spacingMd),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: const Icon(
+                          Icons.apartment_rounded,
                           color: AppTheme.primaryColor,
-                          size: 24,
+                          size: 20,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                dentist?.clinicName ?? 'Clinic Location',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dentist?.clinicName ?? 'Registered Clinic',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (dentist?.clinicAddress != null && dentist!.clinicAddress!.isNotEmpty)
+                                  ? dentist.clinicAddress!
+                                  : 'Bengaluru / Hyderabad Verified Location',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.successColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                dentist?.clinicAddress ?? 'No address registered',
-                                style: theme.textTheme.bodySmall,
+                              child: const Text(
+                                'Complimentary Service • ₹0 Visit Fee',
+                                style: TextStyle(
+                                  color: AppTheme.successColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 Text(
-                  'Select Issue or Equipment',
-                  style: theme.textTheme.titleMedium,
+                  'Equipment / Issue Category',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
 
                 configAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
                   error: (_, _) => const Text('Error loading options'),
                   data: (config) {
                     return DropdownButtonFormField<String>(
                       initialValue: _selectedIssueType,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        hintText: 'Choose equipment problem',
-                        prefixIcon: Icon(Icons.build_circle_outlined),
+                        hintText: 'Select affected equipment',
+                        prefixIcon: Icon(Icons.build_circle_outlined, size: 20),
                       ),
                       items: config.issueTypes.map((type) {
                         return DropdownMenuItem<String>(
@@ -125,43 +163,42 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                           child: Text(
                             type,
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         );
                       }).toList(),
                       onChanged: (val) {
                         setState(() => _selectedIssueType = val);
                       },
-                      validator: (val) => val == null ? 'Please select an equipment issue' : null,
+                      validator: (val) => val == null ? 'Please select an equipment category' : null,
                     );
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Text(
-                  'Describe the Issue',
-                  style: theme.textTheme.titleMedium,
+                  'Issue Details & Symptoms',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'What symptoms or errors are you experiencing? (e.g. noise, leak, power failure)',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                  'Please describe what is happening (e.g. error code, water leakage, motor vibrating, no pressure).',
+                  style: theme.textTheme.bodySmall,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: _descriptionController,
-                  maxLines: 5,
+                  maxLines: 4,
                   decoration: const InputDecoration(
-                    hintText: 'Enter detailed equipment symptoms, make/model, urgency...',
+                    hintText: 'e.g. Dental chair hydraulic system is not tilting up. Started this morning...',
                   ),
                   validator: Validators.description,
                 ),
 
-                const SizedBox(height: 36),
+                const SizedBox(height: 28),
                 ElevatedButton(
                   onPressed: _proceedToReview,
-                  child: const Text('Review & Confirm Booking'),
+                  child: const Text('Review Booking Details'),
                 ),
               ],
             ),

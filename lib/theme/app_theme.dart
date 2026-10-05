@@ -1,43 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// RioDent app theme — clean, professional, dental/medical aesthetic.
+/// RioDent app theme — modern, premium, medical-grade dental SaaS aesthetic.
 ///
-/// Color palette:
-/// - Primary: Deep teal (#0D7377) — trust, professionalism, medical
-/// - Secondary: Warm amber (#F5A623) — energy, action, warmth
-/// - Background: Off-white (#FAFBFC) — clean, clinical
-/// - Surface: Pure white (#FFFFFF)
-/// - Error: Coral red (#E53E3E)
+/// Palette:
+/// - Primary: Surgical Navy Blue (#0F4C81) — trust, precision, clinical authority
+/// - Primary Light: Soft Ice Blue (#EBF3FA)
+/// - Accent: Dental Mint/Teal (#00A896) — freshness, modern care
+/// - Background: Clean Slate (#F8FAFC) — pristine, distraction-free
+/// - Surface: Pure White (#FFFFFF)
+/// - Border: Subtle Slate (#E2E8F0)
 class AppTheme {
   AppTheme._();
 
   // ── Brand Colors ──────────────────────────────────────────────
-  static const Color primaryColor = Color(0xFF0D7377);
-  static const Color primaryLight = Color(0xFF4DA8AA);
-  static const Color primaryDark = Color(0xFF084D4F);
+  static const Color primaryColor = Color(0xFF0F4C81);
+  static const Color primaryLight = Color(0xFFEBF3FA);
+  static const Color primaryDark = Color(0xFF0A2E52);
 
-  static const Color secondaryColor = Color(0xFFF5A623);
-  static const Color secondaryLight = Color(0xFFFFCC66);
-  static const Color secondaryDark = Color(0xFFD48A0C);
+  static const Color secondaryColor = Color(0xFF00A896);
+  static const Color secondaryLight = Color(0xFFE0F7F5);
+  static const Color secondaryDark = Color(0xFF028071);
 
-  static const Color backgroundColor = Color(0xFFFAFBFC);
+  static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color errorColor = Color(0xFFE53E3E);
-  static const Color successColor = Color(0xFF38A169);
-  static const Color warningColor = Color(0xFFECC94B);
+  static const Color cardBorderColor = Color(0xFFE2E8F0);
+
+  static const Color errorColor = Color(0xFFDC2626);
+  static const Color successColor = Color(0xFF10B981);
+  static const Color warningColor = Color(0xFFF59E0B);
 
   // ── Text Colors ───────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFF1A202C);
-  static const Color textSecondary = Color(0xFF718096);
-  static const Color textHint = Color(0xFFA0AEC0);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textHint = Color(0xFF94A3B8);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
-  // ── Status Colors (for request statuses) ──────────────────────
-  static const Color statusNew = Color(0xFF3182CE);
-  static const Color statusAssigned = Color(0xFF805AD5);
-  static const Color statusInProgress = Color(0xFFDD6B20);
-  static const Color statusCompleted = Color(0xFF38A169);
-  static const Color statusCancelled = Color(0xFFA0AEC0);
+  // ── Status Colors ─────────────────────────────────────────────
+  static const Color statusNew = Color(0xFF2563EB);
+  static const Color statusAssigned = Color(0xFF7C3AED);
+  static const Color statusInProgress = Color(0xFFD97706);
+  static const Color statusCompleted = Color(0xFF059669);
+  static const Color statusCancelled = Color(0xFF64748B);
 
   // ── Spacing ───────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -58,13 +62,13 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      fontFamily: 'Inter',
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         onPrimary: textOnPrimary,
         primaryContainer: primaryLight,
         secondary: secondaryColor,
-        onSecondary: textPrimary,
+        onSecondary: textOnPrimary,
         secondaryContainer: secondaryLight,
         surface: surfaceColor,
         onSurface: textPrimary,
@@ -74,17 +78,19 @@ class AppTheme {
       scaffoldBackgroundColor: backgroundColor,
 
       // AppBar
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: surfaceColor,
         foregroundColor: textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 1,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
+        titleTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: -0.2,
         ),
+        iconTheme: const IconThemeData(color: textPrimary),
       ),
 
       // Elevated Button
@@ -92,16 +98,17 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: textOnPrimary,
-          minimumSize: const Size(double.infinity, 52),
+          minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
-          textStyle: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 16,
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
             fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
           ),
           elevation: 0,
+          shadowColor: Colors.transparent,
         ),
       ),
 
@@ -109,15 +116,15 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
-          minimumSize: const Size(double.infinity, 52),
+          minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
-          side: const BorderSide(color: primaryColor, width: 1.5),
-          textStyle: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 16,
+          side: const BorderSide(color: cardBorderColor, width: 1.5),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
             fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
           ),
         ),
       ),
@@ -126,8 +133,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
-          textStyle: const TextStyle(
-            fontFamily: 'Inter',
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -140,31 +146,29 @@ class AppTheme {
         fillColor: surfaceColor,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: spacingMd,
-          vertical: spacingMd,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: const BorderSide(color: cardBorderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: const BorderSide(color: cardBorderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderSide: const BorderSide(color: primaryColor, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMd),
           borderSide: const BorderSide(color: errorColor),
         ),
-        hintStyle: const TextStyle(
-          fontFamily: 'Inter',
+        hintStyle: GoogleFonts.plusJakartaSans(
           color: textHint,
           fontSize: 14,
         ),
-        labelStyle: const TextStyle(
-          fontFamily: 'Inter',
+        labelStyle: GoogleFonts.plusJakartaSans(
           color: textSecondary,
           fontSize: 14,
         ),
@@ -176,7 +180,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          side: const BorderSide(color: Color(0xFFEDF2F7)),
+          side: const BorderSide(color: cardBorderColor, width: 1),
         ),
         margin: const EdgeInsets.symmetric(
           horizontal: spacingMd,
@@ -184,117 +188,100 @@ class AppTheme {
         ),
       ),
 
-      // Bottom Navigation
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surfaceColor,
-        selectedItemColor: primaryColor,
-        unselectedItemColor: textHint,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-      ),
-
       // Divider
       dividerTheme: const DividerThemeData(
-        color: Color(0xFFEDF2F7),
+        color: cardBorderColor,
         thickness: 1,
         space: 1,
       ),
 
       // Chip
       chipTheme: ChipThemeData(
-        backgroundColor: backgroundColor,
+        backgroundColor: surfaceColor,
         selectedColor: primaryLight,
-        labelStyle: const TextStyle(
-          fontFamily: 'Inter',
+        labelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 13,
           fontWeight: FontWeight.w500,
+          color: textPrimary,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusSm),
         ),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        side: const BorderSide(color: cardBorderColor),
       ),
 
       // Text Theme
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 28,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: textPrimary,
-          height: 1.3,
+          letterSpacing: -0.5,
+          height: 1.25,
         ),
         headlineMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 24,
+          fontSize: 22,
           fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: -0.3,
           height: 1.3,
         ),
         headlineSmall: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: -0.2,
           height: 1.3,
         ),
         titleLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: -0.2,
         ),
         titleMedium: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w600,
           color: textPrimary,
+          letterSpacing: -0.1,
         ),
         titleSmall: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         bodyLarge: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.w400,
           color: textPrimary,
           height: 1.5,
         ),
         bodyMedium: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: textPrimary,
-          height: 1.5,
-        ),
-        bodySmall: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 12,
           fontWeight: FontWeight.w400,
           color: textSecondary,
           height: 1.5,
         ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: textSecondary,
+          height: 1.4,
+        ),
         labelLarge: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         labelMedium: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: textSecondary,
         ),
         labelSmall: TextStyle(
-          fontFamily: 'Inter',
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: textSecondary,
-          letterSpacing: 0.5,
+          color: textHint,
         ),
       ),
     );
@@ -322,7 +309,7 @@ class AppTheme {
   static String getStatusLabel(String status) {
     switch (status.toUpperCase()) {
       case 'NEW':
-        return 'Submitted';
+        return 'Received';
       case 'ASSIGNED':
         return 'Technician Assigned';
       case 'IN_PROGRESS':

@@ -47,25 +47,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAnKirefQ9DQRsOFpjq2MJ8wLoaIBMzEM0',
-    appId: '1:956782006207:web:11ccf54bf69bc7d4e4db0a',
-    messagingSenderId: '956782006207',
-    projectId: 'riodentdev',
-    authDomain: 'riodentdev.firebaseapp.com',
-    databaseURL: 'https://riodentdev-default-rtdb.firebaseio.com',
-    storageBucket: 'riodentdev.firebasestorage.app',
-    measurementId: 'G-3LL8QN84EQ',
+    apiKey: 'AIzaSyAgyd6baF32BSwEXk92mCgbmMFoHAR123U',
+    appId: '1:1085269643387:web:e518f7475e3abd791ad2de',
+    messagingSenderId: '1085269643387',
+    projectId: 'equip-services-dev',
+    authDomain: 'equip-services-dev.firebaseapp.com',
+    storageBucket: 'equip-services-dev.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA61dwkNYCn_b5sxOsfXYjcfeTb_gEcR3s',
-    appId: '1:956782006207:android:cd1d7960a4c4700fe4db0a',
-    messagingSenderId: '956782006207',
-    projectId: 'riodentdev',
-    databaseURL: 'https://riodentdev-default-rtdb.firebaseio.com',
-    storageBucket: 'riodentdev.firebasestorage.app',
+    apiKey: 'AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg',
+    appId: '1:1085269643387:android:57beff18a7a651941ad2de',
+    messagingSenderId: '1085269643387',
+    projectId: 'equip-services-dev',
+    storageBucket: 'equip-services-dev.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCBQKk7hCMRYqrzBiyXrBFU7Tt6bKcwj5s',
     appId: '1:956782006207:ios:e70da532c650be80e4db0a',

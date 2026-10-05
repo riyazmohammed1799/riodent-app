@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../providers/request_providers.dart';
 import '../../theme/app_theme.dart';
@@ -21,8 +22,10 @@ class RequestDetailsScreen extends ConsumerWidget {
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Request Status'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: requestAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -170,9 +173,12 @@ class RequestDetailsScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Text('Visit Fee', style: theme.textTheme.labelMedium),
                         const SizedBox(height: 2),
-                        Text(
-                          '₹${req.payableFee.toInt()} (${req.offerLabel ?? "Standard Rate"})',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        const Text(
+                          '₹0 (100% Free Service)',
+                          style: TextStyle(
+                            color: AppTheme.successColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),

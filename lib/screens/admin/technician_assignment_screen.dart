@@ -55,8 +55,10 @@ class _TechnicianAssignmentScreenState extends ConsumerState<TechnicianAssignmen
     final techAsync = ref.watch(activeTechniciansProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Assign Technician'),
+        leading: BackButton(onPressed: () => context.pop()),
       ),
       body: techAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

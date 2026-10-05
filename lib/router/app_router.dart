@@ -87,6 +87,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           return null;
         }
+      } else {
+        // Authenticated user with no profile yet -> go to profile setup
+        final isAuthRoute = loc == '/login' || loc == '/otp' || loc == '/admin/login' || loc == '/splash';
+        if (isAuthRoute) {
+          return '/profile-setup';
+        }
       }
 
       return null;

@@ -14,3 +14,9 @@ final activeTechniciansProvider = StreamProvider<List<TechnicianModel>>((ref) {
   final repo = ref.watch(technicianRepositoryProvider);
   return repo.streamActiveTechnicians();
 });
+
+/// Stream of all technicians in the roster.
+final techniciansProvider = StreamProvider<List<TechnicianModel>>((ref) {
+  final repo = ref.watch(technicianRepositoryProvider);
+  return repo.streamAllTechnicians();
+});
