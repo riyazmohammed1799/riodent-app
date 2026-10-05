@@ -90,12 +90,19 @@ riodent/
    ```
    *(Expected: 0 issues found)*
 
-4. **Run on Chrome or connected Android device**:
-   ```bash
-   flutter run -d chrome
-   # or
-   flutter run -d android
-   ```
+4. **Run the App (Environment Switch)**:
+   * **DEV (Default • `equip-services-dev`)**:
+     ```bash
+     flutter run -d chrome
+     # or explicitly:
+     flutter run -d chrome --dart-define=ENV=dev
+     ```
+   * **STAGING (Beta • `riodent-staging`)**:
+     ```bash
+     flutter run -d chrome --dart-define=ENV=staging
+     # or on Android:
+     flutter run -d android --dart-define=ENV=staging
+     ```
 
 ---
 

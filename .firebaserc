@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "equip-services-dev"
+    "default": "equip-services-dev",
+    "staging": "riodent-staging"
   },
   "targets": {},
   "etags": {}

@@ -3,9 +3,10 @@
 **Last Updated**: October 2026  
 **Application Name**: RioDent  
 **Package / Application ID**: `com.riodent.riodent`  
-**Active Firebase Project**: `equip-services-dev`  
-**Hosting URL**: [https://equip-services-dev.web.app](https://equip-services-dev.web.app)  
-**Code Quality**: Passes `flutter analyze` with **0 issues found**.
+**Environments Supported**:
+* **DEV (Default)**: `equip-services-dev` • Hosting: [https://equip-services-dev.web.app](https://equip-services-dev.web.app)
+* **STAGING (Beta)**: `riodent-staging` • Hosting: [https://riodent-staging.web.app](https://riodent-staging.web.app)
+**Code Quality**: Passes `flutter analyze` and `flutter test` with **0 issues found**.
 
 ---
 

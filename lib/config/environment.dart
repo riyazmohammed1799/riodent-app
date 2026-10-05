@@ -1,10 +1,14 @@
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import '../firebase_options.dart';
+import '../firebase_options_staging.dart';
+
 /// Application environment configuration.
 ///
 /// The active environment is determined at build time via:
 /// ```
-/// flutter run --dart-define=ENV=dev
-/// flutter run --dart-define=ENV=staging
-/// flutter run --dart-define=ENV=prod
+/// flutter run                        # Defaults to DEV (equip-services-dev)
+/// flutter run --dart-define=ENV=dev  # Explicit DEV (equip-services-dev)
+/// flutter run --dart-define=ENV=staging # STAGING (riodent-staging)
 /// ```
 enum Environment {
   dev,
@@ -12,23 +16,46 @@ enum Environment {
   prod;
 
   /// Resolves the current environment from the build-time dart-define.
+  /// Defaults to [Environment.dev] if not specified.
   static Environment get current {
     const envString = String.fromEnvironment('ENV', defaultValue: 'dev');
     return Environment.values.firstWhere(
-      (e) => e.name == envString,
+      (e) => e.name == envString.toLowerCase(),
       orElse: () => Environment.dev,
     );
   }
 
-  /// Human-readable label for display in debug UI.
+  /// Human-readable label for display in debug UI or console.
   String get label {
     switch (this) {
       case Environment.dev:
-        return 'Development';
+        return 'Development (DEV)';
       case Environment.staging:
-        return 'Staging';
+        return 'Staging (BETA)';
       case Environment.prod:
-        return 'Production';
+        return 'Production (PROD)';
+    }
+  }
+
+  /// Returns the active Firebase project ID.
+  String get firebaseProjectId {
+    switch (this) {
+      case Environment.staging:
+        return 'riodent-staging';
+      case Environment.dev:
+      case Environment.prod:
+        return 'equip-services-dev';
+    }
+  }
+
+  /// Returns the corresponding FirebaseOptions for this environment.
+  FirebaseOptions get firebaseOptions {
+    switch (this) {
+      case Environment.staging:
+        return StagingFirebaseOptions.currentPlatform;
+      case Environment.dev:
+      case Environment.prod:
+        return DefaultFirebaseOptions.currentPlatform;
     }
   }
 
