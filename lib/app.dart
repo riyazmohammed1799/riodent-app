@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'config/environment.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'utils/constants.dart';
+import 'widgets/staging_indicator.dart';
 
 /// Root application widget.
 ///
@@ -16,13 +16,13 @@ class RioDentApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final env = Environment.current;
 
     return MaterialApp.router(
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
-      debugShowCheckedModeBanner: env.isDebug,
+      debugShowCheckedModeBanner: false,
       routerConfig: router,
+      builder: (context, child) => StagingIndicatorOverlay(child: child),
     );
   }
 }

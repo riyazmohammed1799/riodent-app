@@ -61,4 +61,13 @@ enum Environment {
 
   /// Whether this is a non-production environment.
   bool get isDebug => this != Environment.prod;
+
+  /// Whether this is the STAGING environment.
+  bool get isStaging => this == Environment.staging;
+
+  /// Whether this is the DEV environment.
+  bool get isDev => this == Environment.dev;
+
+  /// Whether this is the PROD environment.
+  bool get isProd => this == Environment.prod;
 }
