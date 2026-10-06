@@ -1,18 +1,16 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import '../firebase_options.dart';
-import '../firebase_options_staging.dart';
 
 /// Application environment configuration.
 ///
 /// The active environment is determined at build time via:
 /// ```
-/// flutter run                        # Defaults to DEV (equip-services-dev)
-/// flutter run --dart-define=ENV=dev  # Explicit DEV (equip-services-dev)
-/// flutter run --dart-define=ENV=staging # STAGING (riodent-staging)
+/// flutter run                         # Defaults to DEV (equip-services-dev)
+/// flutter run --dart-define=ENV=dev   # Explicit DEV (equip-services-dev)
+/// flutter run --dart-define=ENV=prod  # Production (PROD)
 /// ```
 enum Environment {
   dev,
-  staging,
   prod;
 
   /// Resolves the current environment from the build-time dart-define.
@@ -30,8 +28,6 @@ enum Environment {
     switch (this) {
       case Environment.dev:
         return 'Development (DEV)';
-      case Environment.staging:
-        return 'Staging (BETA)';
       case Environment.prod:
         return 'Production (PROD)';
     }
@@ -40,10 +36,10 @@ enum Environment {
   /// Returns the active Firebase project ID.
   String get firebaseProjectId {
     switch (this) {
-      case Environment.staging:
-        return 'riodent-staging';
       case Environment.dev:
+        return 'equip-services-dev';
       case Environment.prod:
+        // Future production Firebase project; defaults to equip-services-dev
         return 'equip-services-dev';
     }
   }
@@ -51,8 +47,6 @@ enum Environment {
   /// Returns the corresponding FirebaseOptions for this environment.
   FirebaseOptions get firebaseOptions {
     switch (this) {
-      case Environment.staging:
-        return StagingFirebaseOptions.currentPlatform;
       case Environment.dev:
       case Environment.prod:
         return DefaultFirebaseOptions.currentPlatform;
@@ -61,9 +55,6 @@ enum Environment {
 
   /// Whether this is a non-production environment.
   bool get isDebug => this != Environment.prod;
-
-  /// Whether this is the STAGING environment.
-  bool get isStaging => this == Environment.staging;
 
   /// Whether this is the DEV environment.
   bool get isDev => this == Environment.dev;

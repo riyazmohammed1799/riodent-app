@@ -5,7 +5,7 @@
 **Package / Application ID**: `com.riodent.riodent`  
 **Environments Supported**:
 * **DEV (Default)**: `equip-services-dev` • Hosting: [https://equip-services-dev.web.app](https://equip-services-dev.web.app)
-* **STAGING (Beta)**: `riodent-staging` • Hosting: [https://riodent-staging.web.app](https://riodent-staging.web.app)
+* **PROD**: Future production Firebase project
 **Code Quality**: Passes `flutter analyze` and `flutter test` with **0 issues found**.
 
 ---

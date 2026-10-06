@@ -10,7 +10,7 @@ import 'config/environment.dart';
 /// Firebase is initialized according to the target environment:
 ///   flutter run                             → Development (equip-services-dev) [DEFAULT]
 ///   flutter run --dart-define=ENV=dev       → Development (equip-services-dev)
-///   flutter run --dart-define=ENV=staging   → Staging (riodent-staging)
+///   flutter run --dart-define=ENV=prod      → Production (PROD)
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

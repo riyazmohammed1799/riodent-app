@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'utils/constants.dart';
-import 'widgets/staging_indicator.dart';
 
 /// Root application widget.
 ///
@@ -22,7 +21,6 @@ class RioDentApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-      builder: (context, child) => StagingIndicatorOverlay(child: child),
     );
   }
 }

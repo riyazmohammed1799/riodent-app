@@ -97,11 +97,9 @@ riodent/
      # or explicitly:
      flutter run -d chrome --dart-define=ENV=dev
      ```
-   * **STAGING (Beta • `riodent-staging`)**:
+   * **PROD**:
      ```bash
-     flutter run -d chrome --dart-define=ENV=staging
-     # or on Android:
-     flutter run -d android --dart-define=ENV=staging
+     flutter run -d chrome --dart-define=ENV=prod
      ```
 
 ---
