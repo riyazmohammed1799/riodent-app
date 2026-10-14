@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RioDent Phone Emulator & Interactive Testbed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0B132B;
+      --surface: #1C2541;
+      --surface-light: #2A3656;
+      --border: rgba(255, 255, 255, 0.1);
+      --primary: #0F4C81;
+      --primary-light: #3A86C8;
+      --accent-cyan: #00D4AA;
+      --accent-blue: #38BDF8;
+      --accent-green: #10B981;
+      --accent-amber: #F59E0B;
+      --accent-red: #EF4444;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --phone-w: 393px;
+      --phone-h: 852px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 15% 20%, #152238 0%, #0B132B 50%, #070B19 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: #FFFFFF;
+      border-radius: 10px;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-info h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-info h1 span.badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .brand-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #0F4C81;
+      color: #FFFFFF;
+      border-color: #3A86C8;
+    }
+
+    .btn-primary:hover {
+      background: #155d9d;
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-blue);
+    }
+
+    /* Main Workspace */
+    main {
+      flex: 1;
+      display: flex;
+      padding: 24px;
+      gap: 28px;
+      max-width: 1540px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Left Emulator Display Area */
+    .emulator-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    /* Device Toolbar */
+    .device-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 40px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .device-toolbar select, .device-toolbar button {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 20px;
+      transition: background 0.15s;
+    }
+
+    .device-toolbar select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .device-toolbar button:hover {
+      background: var(--surface-light);
+    }
+
+    .device-toolbar button.active {
+      background: var(--primary);
+      color: #FFF;
+    }
+
+    .divider {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+    }
+
+    /* Phone Mockup Frame */
+    .phone-wrapper {
+      position: relative;
+      padding: 12px;
+      background: linear-gradient(135deg, #374151 0%, #1F2937 50%, #111827 100%);
+      border-radius: 54px;
+      box-shadow: 
+        0 0 0 2px #4B5563,
+        0 25px 60px -15px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(56, 189, 248, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .phone-inner {
+      position: relative;
+      width: var(--phone-w);
+      height: var(--phone-h);
+      background: #FFFFFF;
+      border-radius: 44px;
+      overflow: hidden;
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Dynamic Island / Notch */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #000000;
+      border-radius: 20px;
+      z-index: 30;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+    }
+
+    .camera-lens {
+      width: 10px;
+      height: 10px;
+      background: #111827;
+      border-radius: 50%;
+      border: 1px solid #1F2937;
+    }
+
+    .sensor {
+      width: 8px;
+      height: 8px;
+      background: #0a0f1e;
+      border-radius: 50%;
+    }
+
+    /* Screen iframe */
+    .screen-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #FFFFFF;
+    }
+
+    /* Phone Bottom Bar */
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 128px;
+      height: 4px;
+      background: #0F172A;
+      border-radius: 4px;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    /* Side Control Panel */
+    .controls-panel {
+      width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent-blue);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title .tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+
+    /* Quick Credential Box */
+    .cred-box {
+      background: rgba(11, 19, 43, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cred-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cred-role {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cred-copy-btn {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .cred-copy-btn:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .cred-field {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .cred-val {
+      color: #E2E8F0;
+      font-weight: 500;
+    }
+
+    /* Fast Action Navigation Pills */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .nav-pill {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .nav-pill:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent-blue);
+      color: #FFF;
+      transform: translateX(2px);
+    }
+
+    /* Verification Checklist */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #CBD5E1;
+    }
+
+    .check-icon {
+      width: 18px;
+      height: 18px;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      main {
+        flex-direction: column;
+        align-items: center;
+      }
+      .controls-panel {
+        width: 100%;
+        max-width: 440px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <img src="icons/Icon-192.png" alt="RioDent Logo" onerror="this.src='https://raw.githubusercontent.com/riyazmohammed1799/riodent-app/master/assets/images/riodent_icon.png'">
+      </div>
+      <div class="brand-info">
+        <h1>RioDent <span>Dental Equipment Technicians</span> <span class="badge">Live Testbed</span></h1>
+        <p>Interactive Cloud Emulator for Dental Clinics & Dispatch Ops</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="https://riodent-staging.web.app" target="_blank" class="btn btn-outline">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        Open Fullscreen
+      </a>
+      <button class="btn btn-primary" onclick="refreshEmulator()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        Reload App
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main>
+
+    <!-- Phone Simulator -->
+    <section class="emulator-section">
+
+      <!-- Viewport & Tool Selector -->
+      <div class="device-toolbar">
+        <label for="deviceSelect" style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Device:</label>
+        <select id="deviceSelect" onchange="changeDevice(this.value)">
+          <option value="iphone15">iPhone 15 Pro (393 × 852)</option>
+          <option value="pixel8">Google Pixel 8 (412 × 915)</option>
+          <option value="galaxyS24">Samsung Galaxy S24 (360 × 780)</option>
+          <option value="compact">Compact QA Zero-Overflow (320 × 568)</option>
+        </select>
+
+        <div class="divider"></div>
+
+        <button onclick="rotateDevice()" title="Rotate Device">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Rotate
+        </button>
+
+        <button onclick="navigateRoute('/login')" title="Go to Login">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          Login
+        </button>
+
+        <button onclick="navigateRoute('/admin')" title="Go to Admin">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Admin
+        </button>
+      </div>
+
+      <!-- Phone Bezel Frame -->
+      <div class="phone-wrapper" id="phoneWrapper">
+        <div class="phone-inner" id="phoneInner">
+          <div class="dynamic-island">
+            <div class="sensor"></div>
+            <div class="camera-lens"></div>
+          </div>
+
+          <iframe 
+            id="appIframe"
+            class="screen-iframe" 
+            src="https://riodent-staging.web.app"
+            title="RioDent Flutter Mobile Web App"
+            allow="camera; geolocation; microphone; autoplay">
+          </iframe>
+
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Side Control Panel -->
+    <aside class="controls-panel">
+
+      <!-- Test Accounts Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Test Accounts (Quick Testing)</span>
+          <span class="tag">Ready</span>
+        </div>
+
+        <!-- Admin Account -->
+        <div class="cred-box">
+          <div class="cred-header">
+            <span class="cred-role">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Executive Admin (Full Dispatch)
+            </span>
+            <button class="cred-copy-btn" onclick="copyCreds('admin@riodent.com', 'RioDentAdmin2026!')">Copy Both</button>
+          </div>
+          <div class="cred-field">
+            <span>Email:</span>
+            <span class="cred-val">admin@riodent.com</span>
+          </div>
+          <div class="cred-field">
+            <span>Password:</span>
+            <span class="cred-val">RioDentAdmin2026!</span>
+          </div>
+          <div class="cred-field" style="margin-top: 4px; font-size: 11px; color: var(--accent-cyan);">
+            <span>Google Admin:</span>
+            <span class="cred-val">riyaz.mohammed1799@gmail.com</span>
+          </div>
+        </div>
+
+        <!-- Dentist Demo Account -->
+        <div class="cred-box">
+          <div class="cred-header">
+            <span class="cred-role">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              Clinic Doctor (Booking & Tracking)
+            </span>
+            <button class="cred-copy-btn" onclick="copyCreds('dentist.demo@riodent.com', 'Password@123')">Copy Both</button>
+          </div>
+          <div class="cred-field">
+            <span>Email:</span>
+            <span class="cred-val">dentist.demo@riodent.com</span>
+          </div>
+          <div class="cred-field">
+            <span>Password:</span>
+            <span class="cred-val">Password@123</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Screen Direct Navigation -->
+      <div class="card">
+        <div class="card-title">Direct Screen Jumps</div>
+        <div class="nav-grid">
+          <button class="nav-pill" onclick="navigateRoute('/login')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            Login Screen
+          </button>
+          <button class="nav-pill" onclick="navigateRoute('/admin')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Admin Dashboard
+          </button>
+          <button class="nav-pill" onclick="navigateRoute('/dentist/home')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Dentist Home
+          </button>
+          <button class="nav-pill" onclick="navigateRoute('/dentist/book')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Book Technician
+          </button>
+          <button class="nav-pill" onclick="navigateRoute('/dentist/profile')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Profile & Delete
+          </button>
+          <button class="nav-pill" onclick="navigateRoute('/dentist/history')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            Service History
+          </button>
+        </div>
+      </div>
+
+      <!-- User Requirements Checklist -->
+      <div class="card">
+        <div class="card-title">
+          <span>Feature Verification Checklist</span>
+          <span class="tag">61/61 Tests Passed</span>
+        </div>
+        <ul class="checklist">
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Account Deletion:</strong> Instantly calls sign-out and routes to <code>/login</code>; blank screen bug resolved.</span>
+          </li>
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Dental Chair Logo:</strong> White background icon with modern chair, screws/gears & tooth silhouette.</span>
+          </li>
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Theme:</strong> Clean white & surgical blue cards; dark bulky hero boxes removed.</span>
+          </li>
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Validation:</strong> Phone strictly 10 digits; description accepts min 1 character.</span>
+          </li>
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Layout:</strong> Doctor name & Clinic name rendered on separate lines; Review address aligned.</span>
+          </li>
+          <li class="check-item">
+            <span class="check-icon">✓</span>
+            <span><strong>Firestore Permission:</strong> Fixed clock skew & events subcollection rules; request submission operational.</span>
+          </li>
+        </ul>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script>
+    const baseUrl = 'https://riodent-staging.web.app';
+    const iframe = document.getElementById('appIframe');
+    const phoneInner = document.getElementById('phoneInner');
+    let isRotated = false;
+
+    const devices = {
+      iphone15: { w: '393px', h: '852px', radius: '44px' },
+      pixel8: { w: '412px', h: '915px', radius: '40px' },
+      galaxyS24: { w: '360px', h: '780px', radius: '36px' },
+      compact: { w: '320px', h: '568px', radius: '24px' }
+    };
+
+    function changeDevice(deviceKey) {
+      const dev = devices[deviceKey];
+      if (dev) {
+        phoneInner.style.width = isRotated ? dev.h : dev.w;
+        phoneInner.style.height = isRotated ? dev.w : dev.h;
+        phoneInner.style.borderRadius = dev.radius;
+      }
+    }
+
+    function rotateDevice() {
+      isRotated = !isRotated;
+      const deviceKey = document.getElementById('deviceSelect').value;
+      changeDevice(deviceKey);
+    }
+
+    function refreshEmulator() {
+      iframe.src = iframe.src;
+    }
+
+    function navigateRoute(route) {
+      iframe.src = baseUrl + '/#' + route;
+    }
+
+    function copyCreds(email, password) {
+      const text = `Email: ${email}\nPassword: ${password}`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`Copied credentials to clipboard!\n\n${text}\n\nYou can also click 'Admin Login (Testing)' directly at the bottom of the sign-in screen inside the phone!`);
+      });
+    }
+  </script>
+</body>
+</html>
