@@ -34,6 +34,7 @@ class _TechnicianAssignmentScreenState extends ConsumerState<TechnicianAssignmen
         requestId: widget.requestId,
         technicianId: _selectedTech!.id,
         technicianName: _selectedTech!.name,
+        technicianPhone: _selectedTech!.phone,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

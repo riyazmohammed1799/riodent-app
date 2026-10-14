@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
-import '../utils/constants.dart';
 import 'user_providers.dart';
 
 /// Provider for FirebaseAuth instance.
@@ -28,6 +27,15 @@ final currentUserIdProvider = Provider<String?>((ref) {
   return authState.value?.uid;
 });
 
+/// Checks if current user has custom claim admin == true.
+final adminClaimProvider = FutureProvider<bool>((ref) async {
+  final authState = ref.watch(authStateProvider);
+  final user = authState.value;
+  if (user == null) return false;
+  final authRepo = ref.watch(authRepositoryProvider);
+  return await authRepo.checkIsAdminClaim();
+});
+
 /// Stream provider for the logged-in user's Firestore profile.
 final currentUserProfileProvider = StreamProvider<UserModel?>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -37,24 +45,20 @@ final currentUserProfileProvider = StreamProvider<UserModel?>((ref) {
     return Stream.value(null);
   }
 
+  final isAdmin = ref.watch(adminClaimProvider).value ?? false;
   final userRepo = ref.watch(userRepositoryProvider);
-  return userRepo.streamUser(user.uid);
-});
-
-/// Provider for the current user's role string.
-final userRoleProvider = Provider<String?>((ref) {
-  final profileAsync = ref.watch(currentUserProfileProvider);
-  return profileAsync.value?.role;
-});
-
-/// Convenience provider: true if the current user is a dentist.
-final isDentistProvider = Provider<bool>((ref) {
-  final role = ref.watch(userRoleProvider);
-  return role == AppConstants.roleDentist;
+  return userRepo.streamUser(user.uid, isAdmin: isAdmin);
 });
 
 /// Convenience provider: true if the current user is an admin.
 final isAdminProvider = Provider<bool>((ref) {
-  final role = ref.watch(userRoleProvider);
-  return role == AppConstants.roleAdmin;
+  return ref.watch(adminClaimProvider).value ?? false;
+});
+
+/// Convenience provider: true if the current user is a dentist.
+final isDentistProvider = Provider<bool>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return false;
+  final isAdmin = ref.watch(isAdminProvider);
+  return !isAdmin;
 });

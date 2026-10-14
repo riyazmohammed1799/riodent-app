@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import '../../theme/app_theme.dart';
 
 /// Screen displayed after a technician request has been successfully created.
+/// Per Section 3.3:
+/// - Displays short request ID (e.g. REQ-XXXXXX)
+/// - Confirmation: 'Our technician will call you at `mobile` during `slot` to understand the issue.'
+/// - No misleading fee labels
 class RequestSubmittedScreen extends StatelessWidget {
-  final String requestId;
+  final dynamic requestId; // can be String or Map<String, dynamic>
 
   const RequestSubmittedScreen({
     super.key,
@@ -14,6 +18,19 @@ class RequestSubmittedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    String ticketId = 'REQ-SUBMITTED';
+    String mobile = '';
+    String slot = 'your scheduled slot';
+
+    if (requestId is Map<String, dynamic>) {
+      final map = requestId as Map<String, dynamic>;
+      ticketId = map['ticketNumber'] as String? ?? 'REQ-SUBMITTED';
+      mobile = map['mobile'] as String? ?? '';
+      slot = map['slot'] as String? ?? 'your scheduled slot';
+    } else if (requestId is String && (requestId as String).isNotEmpty) {
+      ticketId = requestId as String;
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -27,8 +44,8 @@ class RequestSubmittedScreen extends StatelessWidget {
               const Spacer(),
               Center(
                 child: Container(
-                  width: 90,
-                  height: 90,
+                  width: 84,
+                  height: 84,
                   decoration: BoxDecoration(
                     color: AppTheme.successColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
@@ -36,25 +53,28 @@ class RequestSubmittedScreen extends StatelessWidget {
                   child: const Icon(
                     Icons.check_circle_rounded,
                     color: AppTheme.successColor,
-                    size: 64,
+                    size: 58,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
               Text(
-                'Request Received!',
+                'Booking Submitted!',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppTheme.primaryDark,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                'We will assign the nearest certified technician and update you shortly.',
+                mobile.isNotEmpty
+                    ? 'Our technician will call you at $mobile during $slot to understand the issue.'
+                    : 'Our technician will call you during $slot to understand the issue.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondary,
                   fontSize: 15,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -65,16 +85,23 @@ class RequestSubmittedScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   border: Border.all(color: AppTheme.cardBorderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Reference ID', style: theme.textTheme.bodySmall),
+                        Text('Ticket Reference', style: theme.textTheme.bodySmall),
                         SelectableText(
-                          requestId.isNotEmpty ? requestId : 'CONFIRMED',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ticketId,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryDark),
                         ),
                       ],
                     ),
@@ -82,19 +109,19 @@ class RequestSubmittedScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Status', style: theme.textTheme.bodySmall),
+                        Text('Initial Status', style: theme.textTheme.bodySmall),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
                             color: AppTheme.statusNew.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
                           child: const Text(
-                            'Coordinator Reviewing',
+                            'Pending Dispatch',
                             style: TextStyle(
                               color: AppTheme.statusNew,
                               fontWeight: FontWeight.bold,
-                              fontSize: 11,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -104,9 +131,9 @@ class RequestSubmittedScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Service Charge', style: theme.textTheme.bodySmall),
+                        Text('Platform Fee', style: theme.textTheme.bodySmall),
                         const Text(
-                          '₹0 (100% Free)',
+                          'Free to Use',
                           style: TextStyle(
                             color: AppTheme.successColor,
                             fontWeight: FontWeight.bold,
@@ -124,14 +151,14 @@ class RequestSubmittedScreen extends StatelessWidget {
                 ),
                 onPressed: () => context.go('/dentist/requests'),
                 icon: const Icon(Icons.assignment_turned_in_rounded, size: 18),
-                label: const Text('Go to My Requests'),
+                label: const Text('View in My Requests'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => context.go('/dentist'),
                 child: const Text('Back to Home'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
           ),
         ),

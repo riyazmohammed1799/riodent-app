@@ -2,74 +2,129 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Check if user is admin
-    function isAdmin() {
-      return request.auth.token.email == 'admin@riodent.com'
-        || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-    }
-
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Admin verified by custom claim admin: true and verified email
+    function isAdmin() {
+      return isAuthenticated()
+        && request.auth.token.admin == true
+        && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
     function isOwner(uid) {
-      return request.auth.uid == uid;
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
     }
 
     // USERS collection
     match /users/{userId} {
-      // Users can read their own document; admin can read any user
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      // Users can read own profile; Admin can read any profile
+      allow read: if isOwner(userId) || isAdmin();
 
-      // Users can create their own document on first login (dentist or admin)
-      allow create: if isAuthenticated() && isOwner(userId)
-                    && request.resource.data.role in ['dentist', 'admin'];
+      // Users can create own profile without role escalation; Admin can create/write
+      allow create: if isOwner(userId)
+                    && !('role' in request.resource.data)
+                    || isAdmin();
 
-      // Users can update their own profile (cannot change role; admin can update)
-      allow update: if isAuthenticated() && (
-        (isOwner(userId) && request.resource.data.role == resource.data.role)
-        || isAdmin()
-      );
+      // Users can update own profile (cannot set role); Admin can update
+      allow update: if isOwner(userId)
+                    && !('role' in request.resource.data)
+                    || isAdmin();
 
-      // No client-side user deletes
-      allow delete: if false;
+      // In-app account deletion
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // TECHNICIAN REQUESTS collection
     match /technicianRequests/{requestId} {
-      // Dentists can read their own requests; admin can read all
-      allow read: if isAuthenticated()
-                  && (resource.data.dentistId == request.auth.uid || isAdmin());
+      // Owner dentist can read; Admin can read all
+      allow read: if isAuthenticated() && (resource.data.dentistId == request.auth.uid || isAdmin());
 
-      // Dentists can create requests (must set own dentistId, status must be NEW)
+      // Create by Doctor: dentistId == uid, status NEW, future slotStart, valid description, no amountPaid
       allow create: if isAuthenticated()
                     && request.resource.data.dentistId == request.auth.uid
-                    && request.resource.data.status == 'NEW';
+                    && request.resource.data.status == 'NEW'
+                    && request.resource.data.slotStart > request.time
+                    && request.resource.data.issueDescription.size() >= 1
+                    && request.resource.data.issueDescription.size() <= 500
+                    && !('amountPaid' in request.resource.data)
+                    || isAdmin();
 
-      // Only admin can update requests (status changes, assignment, notes)
-      allow update: if isAuthenticated() && isAdmin();
+      // Status updates enforced server-side
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (
+          resource.data.dentistId == request.auth.uid
+          && request.resource.data.dentistId == request.auth.uid
+          && (
+            // Doctor Cancellation: from NEW or ASSIGNED to CANCELLED with reason
+            (
+              resource.data.status in ['NEW', 'ASSIGNED']
+              && request.resource.data.status == 'CANCELLED'
+              && request.resource.data.cancelledBy == 'dentist'
+              && request.resource.data.reasonText.size() >= 1
+            )
+            ||
+            // Doctor Completion: from ASSIGNED or IN_PROGRESS to COMPLETED with whole rupee amountPaid >= 0
+            (
+              resource.data.status in ['ASSIGNED', 'IN_PROGRESS']
+              && request.resource.data.status == 'COMPLETED'
+              && request.resource.data.completedBy == 'dentist'
+              && request.resource.data.amountPaid >= 0
+              && request.resource.data.amountPaid <= 100000
+            )
+            ||
+            // Doctor Edit: fix wrong time or wrong issue while status is NEW or ASSIGNED
+            (
+              resource.data.status in ['NEW', 'ASSIGNED']
+              && request.resource.data.status == resource.data.status
+              && request.resource.data.dentistId == resource.data.dentistId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'issueCode', 'issueLabel', 'issueDescription', 'slotDate', 'slotKey', 'slotStart', 'address', 'updatedAt'
+              ])
+            )
+          )
+        )
+      );
 
-      // No deletes in V1
       allow delete: if false;
+
+      // Subcollection: events (audit history)
+      match /events/{eventId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/technicianRequests/$(requestId)).data.dentistId == request.auth.uid
+          || isAdmin()
+        );
+        allow create: if isAuthenticated() && (
+          get(/databases/$(database)/documents/technicianRequests/$(requestId)).data.dentistId == request.auth.uid
+          || isAdmin()
+        );
+        allow update, delete: if false;
+      }
+
+      // Subcollection: internal notes (Admin only; doctors denied)
+      match /internal/{allPaths=**} {
+        allow read, write: if isAdmin();
+      }
     }
 
-    // TECHNICIANS collection
+    // TECHNICIANS collection (Admin only)
     match /technicians/{technicianId} {
-      // Anyone authenticated can read
-      allow read: if isAuthenticated();
-
-      // Only admin can write
-      allow write: if isAuthenticated() && isAdmin();
+      allow read, write: if isAdmin();
     }
 
     // APP SETTINGS collection
     match /appSettings/{document} {
-      // Anyone authenticated can read (needed for fee and configuration display)
+      // Authenticated users can read booking config
       allow read: if isAuthenticated();
-
-      // Only admin can write
-      allow write: if isAuthenticated() && isAdmin();
+      // Only admin can write settings
+      allow write: if isAdmin();
     }
   }
 }

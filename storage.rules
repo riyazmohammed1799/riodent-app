@@ -1,22 +1,8 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    // Requests media: photos and optional video
-    match /requests/{requestId}/{allPaths=**} {
-      // Authenticated users can read media
-      allow read: if request.auth != null;
-
-      // Only authenticated users can upload with size and type constraints
-      allow write: if request.auth != null
-                   && request.resource.size < 25 * 1024 * 1024
-                   && (
-                     request.resource.contentType.matches('image/.*')
-                     || request.resource.contentType.matches('video/.*')
-                   );
-    }
-
-    // Deny everything else
+    // Media uploads are removed from RioDent MVP per Section 2 (Issue 5) and Section 3.10
+    // Deny all reads and writes
     match /{allPaths=**} {
       allow read, write: if false;
     }

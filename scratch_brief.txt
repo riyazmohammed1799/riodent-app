@@ -1,0 +1,184 @@
+<USER_REQUEST>
+RioDent MVP: Fix, Test and Production Launch Brief
+For Claude Opus / Antigravity. Attach this brief together with Riodent_MVP_QA_Test_Cases_v2.xlsx (the full test cases, issue list and release checklist).
+0. How to work
+•	You are the lead engineer and QA for this app. Work end to end: reproduce each issue, write a failing test, fix it, re-run the tests, then move on.
+•	Do not stop to ask me questions. Where this brief is silent, choose the simplest option and list it under Assumptions in your final report.
+•	Keep the app simple. Anything likely to change (categories, time slots, cancel reasons, service area, support phone) must be config in Firestore so it can change without a new release.
+•	Never commit secrets (keystores, service-account JSON, passwords). Every credential that was ever hard-coded in the app must be treated as leaked and rotated.
+•	Do all work and testing on the staging Firebase project or the Firebase Local Emulator Suite. Touch production only in section 7, after every test passes.
+•	Final output: RELEASE_REPORT.md with the result of every test ID (Pass / Fail / Not applicable), bugs fixed, assumptions, and the exact production steps performed. Also give me the release APK and AAB.
+1. Product context
+•	RioDent is a free app for dental clinics in Hyderabad (launch area only). A doctor books a technician for broken dental equipment. The admin (me) assigns a technician manually by phone. There is no technician app.
+•	Flow: doctor books a slot -> technician calls the doctor and asks about the issue -> technician visits -> technician asks the doctor to close the ticket in the app and the doctor enters how much was paid to the technician.
+•	Stack (repo C:\Users\riyaz\riodent_claude): Flutter, Riverpod, go_router, Firebase Auth, Cloud Firestore, App Check. Package com.riodent.riodent.
+•	Target: up to 1 lakh (100,000) doctors, real-time status updates, simple UI, agile MVP that is easy to extend later.
+2. Problems found (verified by reading the APKs)
+The two APKs I uploaded contain identical app code, so none of the earlier findings are fixed yet. Fix all of these:
+1.	Dropdown crash on the booking screen (items == null || items.isEmpty || value == null || items.where(...).length == 1). The dropdown is built from config.issueTypes with an initialValue. It crashes when the list contains duplicates, is empty, or changes after a value is chosen. The home tiles also use different names (Dental Chair, Suction & Piping) from the config names (Dental Chair Malfunction, Compressor / Suction Issue...), and every tile just opens /dentist/book without passing the category.
+2.	Home shows only one active request (active.first). The app-bar icon and 'My Service History' both open the same list with filter All, so status views are missing.
+3.	Yellow-black overflow stripes (for example '26 pixels') on register, home, review, admin dashboard and other screens: fixed layouts without scrolling or flexible children.
+4.	Description needs at least 10 characters (Validators.description). Must accept any words.
+5.	Photo and video code still exists (config, models, limits). Remove everything about images.
+6.	'Use GPS' cannot work: the Android manifest has no location permission.
+7.	Login screen has a phone OTP tab, an 'Admin Portal' link, 'Instant Testing' buttons (1-Click Admin and 1-Click Doctor login), 'Fill Test OTP', prefilled credentials and hard-coded admin and demo passwords. The app also has client-side code that signs in or creates the admin account and admin profile.
+8.	Profile setup screen is forced after registration. I want registration to go straight to Home.
+9.	Email check rejects valid addresses ending in more than 4 letters (.dental, .clinic, .health).
+10.	Admin dashboard: the Bookings Queue, Active Leads, Completed and Total Doc Revenue tiles are not tappable and show unclear numbers. Admin streams entire collections, which will not scale.
+11.	Status buttons are not linked (Set In Progress / Mark Completed / Cancel are not tied to assignment or to the doctor's actions).
+12.	Wrong fee text: screens say Rs 0, FREE SERVICE, Visit Fee, Inspection Charges. The app is free, but the doctor pays the technician directly, so this text is misleading.
+13.	Placeholder technicians are seeded from the client with fake phone numbers.
+14.	Debug build (about 175 MB, debuggable), three Firebase configs inside, and a BETA/STAGING ribbon widget.
+15.	Doctors cannot cancel a request, cannot close a ticket, and the My Requests filter has no Cancelled option.
+3. Final specification
+3.1 Sign-in (doctor)
+•	One login screen. Big Continue with Google button first, then email and password (Sign in / Register).
+•	Remove phone OTP, the Admin Portal link, all test buttons and all prefilled values.
+•	Register (email): doctor name, clinic name, email, password (min 6, show/hide). On success go straight to Home. A first-time Google sign-in also creates the account and goes straight to Home. No profile-setup gate.
+•	The session persists until the user signs out. Reopening the app or rebooting the phone opens the same account. After reinstall, signing in with the same Google or email account returns the same data. Sign-out clears all cached user state.
+•	Email validation: contains @ and a dot after it with at least 2 letters after the last dot. Send a verification email but do not block doctors.
+•	Add a simple Profile screen: name, clinic, mobile, Sign out, Delete my account (Play Store requires in-app account deletion), Privacy Policy and Terms links, and the support phone number (from config).
+3.2 Admin sign-in
+•	No admin link anywhere on the doctor screens. Admin uses the same login screen. After sign-in the app reads the Firebase custom claim admin: true. If true, go to /admin; otherwise go to doctor Home.
+•	The admin email(s) are set by a one-time script tools/set_admin_claim (Firebase Admin SDK, service account kept outside the repo). Delete all client-side admin creation code.
+•	Admin should sign in with Google (Gmail verification is built in). An email/password admin must have a verified email, and the rules must check email_verified.
+•	Keep me signed in is the default. Provide Sign out. Change password (email/password admin only) sends a reset link to the admin's Gmail. Google admins see 'Password is managed by Google'.
+•	Doctors can never open admin routes. Admins never see doctor booking screens.
+3.3 Booking: four steps (Equipment, Contact and address, Time slot, Review)
+Equipment
+•	Category dropdown from appSettings/bookingConfig.issueTypes (objects with code, label, active). De-duplicate by code. If the selected value is not in the list, clear it. If the list is empty, show a friendly message. Home category tiles must preselect the category by code.
+•	Description: any words, 1 to 500 characters, not only spaces. No images or videos anywhere. Remove the image picker plugin, camera/photo permissions, storage upload code and limits.
+Contact and address
+•	Doctor name and clinic name: prefilled from the profile, editable.
+•	Mobile number: mandatory (10 digits, starts with 6 to 9, +91 optional) so the technician can call.
+•	City fixed to Hyderabad (read-only). Fields: Address line (required), Landmark (optional), Area (optional), Pincode (required, 6 digits, must start with a configured prefix, default 500, 501, 502). If not serviceable show: 'We currently serve Hyderabad only.'
+•	Detect my location button: ask permission, read GPS, reverse-geocode with the free geocoding plugin (uses the phone's own geocoder, no API key and no billing) and fill address, area and pincode. Save latitude and longitude. The user can still edit everything. If the location is outside Hyderabad show the same message. Do not use the Google Maps SDK or Places API (they need a billing account).
+•	Add ACCESS_FINE_LOCATION and ACCESS_COARSE_LOCATION to the Android manifest.
+•	After the first successful booking save clinic name, mobile and address to the profile so the next booking is prefilled.
+Time slot (future only)
+•	Date chips: today to today + 7 days (config maxDaysAhead). Slots in IST (config): 9 AM to 12 PM, 2 PM to 5 PM, 6 PM to 9 PM.
+•	A slot can be chosen only if its start is at least 30 minutes from now (config). Past dates and slots are disabled. Validate again when the doctor taps Confirm, and enforce slotStart > request.time in Firestore rules, so a wrong phone clock cannot book the past.
+•	Show this text: 'The technician will call you, or reach your clinic, during this time.'
+Review and confirm
+•	Show doctor name, clinic name, mobile, full address, category, description, slot and status 'Technician will be assigned by RioDent'. Remove all fee lines. Show: 'RioDent is free to use. Any technician charges are paid directly to the technician after the visit.' Fix the overflow on this screen.
+•	Success screen: short request ID and 'Our technician will call you at <mobile> during <slot> to understand the issue.'
+•	Maximum open requests per doctor: 3 (config). Create the request with a pre-generated document ID, and disable the button while submitting, so a double tap cannot create two requests.
+3.4 Status model (only five statuses)
+NEW (shown as Pending dispatch) -> ASSIGNED (Technician assigned) -> IN_PROGRESS -> COMPLETED, and CANCELLED. 'Service denied' is Cancelled with a reason; do not add more statuses.
+•	Admin can: assign or reassign a technician (NEW, ASSIGNED); Set In Progress only when status is ASSIGNED and a technician exists; Complete on behalf of the doctor (ASSIGNED, IN_PROGRESS) with the amount prompt; Cancel or deny (any non-final status) with a reason.
+•	Doctor can: Cancel (NEW, ASSIGNED) with a reason; Mark as completed (ASSIGNED, IN_PROGRESS) with the amount prompt. Doctors cannot change anything after COMPLETED or CANCELLED. After the technician has started (IN_PROGRESS) the doctor cancels by calling support.
+•	COMPLETED and CANCELLED are final. Every change adds a record to technicianRequests/{id}/events (status, by, at, note).
+•	Both apps update live (Firestore snapshot on the single request document). Use transactions so two actions at once cannot corrupt a ticket. The first write wins and the other user sees 'This ticket was already updated'.
+3.5 Closing the ticket and amount paid
+•	After the visit the technician asks the doctor to close the ticket. The doctor opens the request and taps Mark as completed. A dialog asks 'How much did you pay the technician? (Rs)' with whole rupees from 0 to 100000 (0 is allowed for a free visit). A second dialog says 'Confirm that you paid Rs X and close this ticket?'. On confirm save amountPaid, completedAt, completedBy = 'dentist', status COMPLETED.
+•	If the doctor does not close the ticket, the admin uses Close on behalf of doctor with the same amount prompt (completedBy = 'admin'). The admin lists mark these tickets.
+3.6 Cancel and deny reasons (reason is mandatory; 'Other' needs text)
+•	Doctor reasons: Issue resolved on its own; Booked by mistake or wrong details; Found another technician; Technician did not call; No longer needed; Other.
+•	Admin reasons: Outside service area; No technician available; Equipment type not supported; Doctor not reachable; Duplicate request; Doctor asked to cancel; Technician unable to attend; Other.
+•	Both lists live in config. Save cancelledBy, reasonCode, reasonText. The doctor sees the reason and a Book again button that opens the booking form prefilled.
+3.7 Doctor Home and My Requests
+•	Home: greeting, Book a technician, live status tiles (Pending, Assigned, In progress, Completed). Each tile opens My Requests with that filter already selected. Active requests list shows all active requests (up to 5, then 'View all'). Category tiles preselect the category. 'My Service History' opens My Requests with All.
+•	My Requests: chips All, Pending, Assigned, In progress, Completed, Cancelled. Pagination of 20. The detail screen shows slot, technician name and tap-to-call phone once assigned, status timeline, amount paid and cancel reason.
+3.8 Admin console (bottom navigation: Dashboard, Bookings, Doctors, Technicians, Settings)
+•	Dashboard (executive): every tile is tappable and opens the matching filtered list. First show Needs attention: pending for more than 2 hours; today's slot with no technician; slot time passed but still ASSIGNED; ASSIGNED or IN_PROGRESS for more than 48 hours. Then KPIs with Today / 7 days / 30 days: pending dispatch, assigned, in progress, completed, cancelled, doctors registered, active technicians, and 'Paid to technicians (reported by doctors)' in Rs. Remove or rename any label that is not tappable or not meaningful (for example Active Leads, Total Doc Revenue). Fix the overflow.
+•	Bookings: chips Pending dispatch, Technician assigned, In progress, Completed, Cancelled, All, each with a count. Search by clinic, doctor, mobile or short ID. Sorted by slot time. Paginated.
+•	Ticket detail: clinic, doctor, tap-to-call mobile, full address with landmark and pincode, Open in Google Maps (a plain maps URL from lat/lng or the address; free), category, description, slot, timeline. Actions: Assign technician (active technicians only), Set In Progress (disabled until assigned), Close on behalf, Cancel or deny with reason, internal notes (stored in a subcollection that doctors cannot read). When a technician is assigned the doctor immediately sees 'Technician <name> (<phone>) will call or visit you during your slot'.
+•	Doctors: searchable, paginated list. Tap for profile, call button and that doctor's requests.
+•	Technicians: add, edit, deactivate (name, phone, area, specialization). Delete the 'Seed technicians' button and the placeholder data.
+•	Settings: categories (add, rename, deactivate; no hard delete), slots, max days ahead, serviceable pincode prefixes, reason lists, support phone, max open requests per doctor.
+3.9 Data model
+•	users/{uid}: displayName, email, phone, clinicName, address, createdAt. The role is never stored where the client can change it; admin comes from the custom claim.
+•	technicianRequests/{id}: dentistId, dentistName, clinicName, mobile, address{line, landmark, area, city, pincode, lat, lng}, issueCode, issueLabel, issueDescription, slotDate, slotKey, slotStart, status, assignedTechnicianId/Name/Phone, assignedAt, startedAt, completedAt, completedBy, amountPaid, cancelledAt, cancelledBy, reasonCode, reasonText, createdAt, updatedAt. Subcollections: events, internal/notes.
+•	technicians/{id}: name, phone, area, specialization, isActive.
+•	appSettings/bookingConfig: issueTypes, slots, maxDaysAhead, minLeadMinutes, serviceablePincodePrefixes, doctorCancelReasons, adminCancelReasons, supportPhone, maxOpenRequests.
+•	Remove the photos, video and storage fields.
+3.10 Security rules (Firestore) and App Check
+•	Deny by default. Doctor: read and write own users doc (not role); create a request only when dentistId == uid, status is NEW, slotStart > request.time, description 1 to 500, valid mobile and pincode, no amount; read only own requests; update only the doctor transitions in 3.4 and only the allowed fields.
+•	Admin (claim admin == true and email verified): read all, assign, change status, manage technicians and settings.
+•	technicians: admin only. appSettings: signed-in read, admin write. Storage rules: deny everything.
+•	Enforce valid status transitions in the rules too, not only in the UI.
+•	Turn on App Check (Play Integrity) and enforce it for Firestore and Auth before launch.
+3.11 Scale for 1 lakh users
+•	Never stream a whole collection. Use limit 20 queries with cursors. Use .snapshots() only for a single request or a short, limited list.
+•	Dashboard numbers use Firestore aggregation queries (count() and sum()), not downloaded documents.
+•	Create the composite indexes (status + slotStart, dentistId + createdAt, status + createdAt) in firestore.indexes.json and deploy them.
+•	Dispose every listener. Keep reads per screen small. Use Blaze plan with budget alerts, and turn on point-in-time recovery for Firestore.
+3.12 Extra items to include (small but needed for launch)
+•	Privacy Policy and Terms URLs (Play Console and in-app), Play Data Safety form, in-app account deletion.
+•	Crashlytics and Analytics. Remote Config minimum app version (force update) so a broken version can be retired.
+•	Support phone number in config, shown on Home, Profile and cancel dialogs.
+•	Push notifications (FCM) are not in this release. Leave one clean extension point so they can be added next (assigned, completed, cancelled).
+•	Doctors never see other doctors' data or internal admin notes.
+4. UI quality
+•	Zero overflow stripes on every screen. Wrap forms in SingleChildScrollView or ListView, use Expanded / Flexible and Wrap, set resizeToAvoidBottomInset, and avoid fixed heights. Check at 320x568, 360x640 and 412x915, with the keyboard open, font scale 1.3 and 2.0, and dark mode.
+•	Add a widget or integration test that opens every screen at those sizes and fails if tester.takeException() is not null.
+•	Every screen has loading, empty and error states. Remove all debug text, test hints and the staging ribbon from production builds.
+5. Testing
+•	Execute every case in Riodent_MVP_QA_Test_Cases_v2.xlsx (Test Cases sheet) and fill the Status column. Tag Smoke = quick check after each change; Regression = full run before release.
+•	Automate what you can: unit tests (validators, slot logic, status rules, amount rules), widget tests, integration_test on the emulator, and Firestore rules unit tests with @firebase/rules-unit-testing against the emulator.
+•	Do functional, regression, validation, negative, doctor-flow, admin-flow, security and performance testing. Seed realistic data (for example 1,000 doctors and 5,000 requests) in staging to test pagination, aggregation and indexes.
+•	Re-run the full regression after the last fix. Anything failing blocks the release.
+6. Emulator and test APK
+I have no emulator. Please set up and document the following in README_TESTING.md:
+•	Install Android Studio, then create one Pixel 7, API 34, Google Play system image emulator (needed for Google sign-in), and sign in to a Google account on it. On Windows enable WHPX or Hyper-V.
+•	Use the Firebase Local Emulator Suite (Auth and Firestore) for destructive tests. Test Google sign-in on the staging project, because the emulators do not fully support it.
+•	Build a release-like APK for staging (flutter build apk --release --flavor staging) and give it to me for manual checks on a real phone, plus the prod AAB at the end.
+7. Production release on Firebase
+1.	Create separate dev / staging / prod Firebase projects and Flutter flavors. The production flavor must use the production project and show no ribbon or test text.
+2.	Prod project: Blaze plan, budget alerts, Auth providers Google and Email/Password, authorized domains, SHA-1 and SHA-256 of the release key and of Google Play App Signing, App Check enforced, Crashlytics on, point-in-time recovery on.
+3.	Deploy rules and indexes: firebase deploy --only firestore:rules,firestore:indexes (staging first, then prod). Run the rules tests before each deploy.
+4.	Set the admin claim for my admin Gmail only using the script. Create the prod bookingConfig (categories, slots, pincodes, reasons, support phone). Add real technicians from the admin panel. No test accounts, demo data, or test credentials in prod. Rotate the old admin password and delete the old demo accounts.
+5.	Build a signed release AAB (flutter build appbundle --release --flavor prod), keep the keystore backed up outside the repo, and increment the version.
+6.	Smoke-test the prod build on a real phone with a fresh Google account: register, book, admin assigns, in progress, doctor closes with amount, admin sees it in the dashboard. Then delete that test data.
+7.	Upload to Play Console internal testing, then production with a staged rollout. Prepare the rollback plan (previous AAB and Remote Config minimum version).
+8. Definition of done
+•	Every item in section 2 is fixed and has a passing test.
+•	All Smoke and Regression cases pass, with no open Critical or High issue and no overflow stripes anywhere.
+•	Rules tests pass; no secrets in the repo or in the APK (scan the release APK strings for passwords, test buttons, and old admin data).
+•	Prod is deployed per section 7 and RELEASE_REPORT.md lists results, assumptions and next backlog items (FCM notifications, technician app, online payments, ratings, auto-cancel of stale tickets).
+9. Google Play and privacy compliance (must pass before upload)
+These points were checked against Google's published policy pages and Indian law in October 2026. Policies change, so re-check the linked Play Console Help pages on the day you upload. I am not a lawyer: have the privacy policy and terms reviewed before launch. Record every result in PLAY_COMPLIANCE.md.
+9.1 Technical requirements
+•	Target Android 16 (API level 36) or higher for targetSdk and compileSdk. Google Play has required this for all new apps and updates since 31 August 2026. Upload an AAB (not APK), signed with an upload key, with Play App Signing on.
+•	Android 16 changes the back button handling. Use Flutter PopScope and test the back gesture on every screen (no accidental exit, no lost data).
+•	Permissions: keep only what is needed: INTERNET, ACCESS_NETWORK_STATE and location (ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION). Review every other permission that plugins add (for example biometric, fingerprint, dump) and remove or justify each one. No camera, photo, contacts, SMS or background location.
+•	Location: ask only when the user taps Detect my location (foreground, one time), show a short reason before the system prompt, and make sure the app works fully without it (manual address). Never request background location. (From 27 January 2027, apps targeting Android 17 must use the Android location button for one-time precise location; plan for it when you raise the target.)
+•	Network: HTTPS only (usesCleartextTraffic=false), allowBackup=false, no logs or Crashlytics events containing phone numbers, addresses or emails.
+•	Test with the Play Console pre-launch report and fix any crash or accessibility finding.
+9.2 Play Console declarations
+•	Privacy Policy at a public, working URL (host it free on Firebase Hosting, for example /privacy), linked in the Play listing and inside the app. It must name the app and developer, list the data collected (name, email, mobile, clinic address, optional one-time location, account ID, crash and diagnostic data), why it is used, who sees it (RioDent admin and the assigned technician; Google/Firebase as service providers), how long it is kept, how to delete it, and a contact and grievance email.
+•	Data safety form: answers must match what the app really does. Check every SDK in the build (Firebase Auth, Firestore, App Check, Crashlytics, Analytics, Google Sign-In) and declare what each collects. Declare data encrypted in transit and that users can request deletion. A wrong form can get an update rejected.
+•	Account deletion: in-app Delete my account (already in 3.1) and a public web page with deletion instructions (host it with the privacy policy, for example /delete-account), with its URL entered in the Data safety form. Deleting the account must delete or anonymise the personal data tied to it (profile, name, mobile, address, email). You may keep anonymised completed-request records for statistics.
+•	Content rating questionnaire, target audience 18+ only (not for children), no ads declaration, app category, contact email, store listing (icon 512x512, feature graphic 1024x500, at least 2 phone screenshots, accurate short and full description).
+•	The listing and the app must not make misleading claims (for example 'free technician visit'). The app only records the amount a doctor paid a technician; it does not take or process payments. Say this clearly in the app and in the listing.
+•	New personal developer accounts must run a closed test with at least 12 testers, opted in for 14 continuous days, before they can apply for production access. Organization accounts are exempt. Plan for this: it adds about 3 weeks. Recruit 12 or more real doctors or friends (Gmail accounts) and start the closed test as soon as the first fixed release build is ready; you can upload updates during the test.
+9.3 Privacy by design (India)
+•	Collect only what the service needs: name, clinic, email, mobile, address, optional one-time location. No contacts, no device identifiers beyond what Firebase needs, no tracking for ads.
+•	First sign-up notice: a short plain-language screen before the account is created (what is collected, why, who sees it, link to the policy) with a Continue button. Save the consent time and the policy version in the user document. Provide a way to withdraw consent, which means deleting the account.
+•	The India DPDP Act and Rules 2025 core duties (notice, consent, security, deletion, grievance handling, breach reporting) start on 13 May 2027. Build them in now: show a contact for privacy questions in the policy and Profile, answer grievances within a reasonable time (the rules cap it at 90 days), and have a written breach plan (notify affected people, and the regulator once the rules apply).
+•	Tell doctors that their name, clinic address and mobile number are shared with the assigned technician so the technician can call and visit.
+•	Define retention (for example keep requests for 3 years, then anonymise) and implement it as a documented, repeatable admin step for now.
+•	Limit admin access: one or two admin accounts, 2-step verification on the admin Gmail, every status change recorded in events.
+9.4 Extra deliverables
+•	PLAY_COMPLIANCE.md: checklist with Pass or Fail for each point above, the Data safety answers, the permission list with the reason for each, the content-rating answers, and the store listing text.
+•	privacy-policy.html and delete-account.html, deployed on Firebase Hosting, plus the in-app links to them.
+•	A short LAUNCH_PLAN.md: closed-test start date, the 12 tester emails to collect, production-access application date, staged rollout plan.
+•	The Release & Deployment and Play Store & Privacy sections of the test workbook must be fully Pass before the production upload.  next i will provide the 250 approx test cases to be worked on this app. 
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-14T12:33:21+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\riyaz\riodent_claude\test\technician_request_test.dart (LANGUAGE_DART)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\riyaz\riodent_claude\lib\models\technician_request_model.dart (LANGUAGE_DART)
+- c:\Users\riyaz\riodent_claude\firestore.indexes.json (LANGUAGE_JSON)
+- c:\Users\riyaz\riodent_claude\firestore.rules (LANGUAGE_UNSPECIFIED)
+- c:\Users\riyaz\riodent_claude\android\build.gradle.kts (LANGUAGE_UNSPECIFIED)
+- c:\Users\riyaz\riodent_claude\lib\router\app_router.dart (LANGUAGE_DART)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.8 Flash (High) to Claude Opus 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

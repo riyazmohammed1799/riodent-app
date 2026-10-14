@@ -7,7 +7,7 @@ class AppConstants {
 
   // ── App Info ──────────────────────────────────────────────────
   static const String appName = 'RioDent';
-  static const String appTagline = 'Dental Technician Services';
+  static const String appTagline = 'Dental Equipment Technicians';
 
   // ── Media Upload Limits ───────────────────────────────────────
   // These are client-side defaults. Server-side limits are enforced

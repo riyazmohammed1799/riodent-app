@@ -1,0 +1,178 @@
+[
+  {
+    "id": "I1",
+    "severity": "Critical",
+    "reported": "Hard-coded admin and demo credentials; 1-Click Admin / Doctor login; Fill Test OTP; client-side admin account creation",
+    "cause": "Constants and login-screen code inside the app (unchanged in both APKs)",
+    "required_change": "Remove all of it; rotate passwords; admin by Firebase custom claim set by a script",
+    "test_ids": "AUTH-23, ADA-11, SEC-01, SEC-02, SEC-03"
+  },
+  {
+    "id": "I2",
+    "severity": "Critical",
+    "reported": "Production rules not verified; role is stored in a user document",
+    "cause": "APK cannot show the rules",
+    "required_change": "Deny-by-default Firestore/Storage rules; rules unit tests; enforce status transitions server-side",
+    "test_ids": "SEC-03 to SEC-10, SEC-14, ADM-16"
+  },
+  {
+    "id": "I3",
+    "severity": "High",
+    "reported": "Home dropdown tabs (Dental Chair ... Suction Pipe) show red error 'exactly one item with DropdownButton value'",
+    "cause": "Dropdown built from config list with initialValue; tile names differ from config names; list can have duplicates/empty/changes; tiles open booking without category",
+    "required_change": "One category list with codes; de-duplicate; reset invalid selection; tiles preselect by code",
+    "test_ids": "BKG-01 to BKG-04, HOME-05"
+  },
+  {
+    "id": "I4",
+    "severity": "High",
+    "reported": "Active lead card does not show all requests; History opens same screen",
+    "cause": "Home shows only active.first; app-bar icon and History both push the list with filter All",
+    "required_change": "Status tiles + all active requests; deep link to filtered list",
+    "test_ids": "HOME-01 to HOME-04, DR-01"
+  },
+  {
+    "id": "I5",
+    "severity": "High",
+    "reported": "Yellow-black overflow stripes (26 px etc.) on register, home, review, admin dashboard",
+    "cause": "Fixed layouts without scroll or flexible widgets",
+    "required_change": "Make all screens scrollable/flexible; add overflow test at 3 sizes",
+    "test_ids": "UI-01 to UI-04, AUTH-24, HOME-09, BKG-29, DSH-10"
+  },
+  {
+    "id": "I6",
+    "severity": "High",
+    "reported": "'Use GPS' cannot work on Android",
+    "cause": "Manifest has no ACCESS_FINE/COARSE_LOCATION",
+    "required_change": "Add permissions; use free device geocoder to fill address; no paid Maps/Places API",
+    "test_ids": "BKG-20 to BKG-26"
+  },
+  {
+    "id": "I7",
+    "severity": "High",
+    "reported": "Description must be 10+ characters",
+    "cause": "Validators.description",
+    "required_change": "Any words, 1-500 chars",
+    "test_ids": "BKG-05 to BKG-08"
+  },
+  {
+    "id": "I8",
+    "severity": "High",
+    "reported": "Images/videos cost storage",
+    "cause": "Photo/video config, models, Storage code",
+    "required_change": "Remove everything; Storage rules deny all",
+    "test_ids": "BKG-09, SEC-10"
+  },
+  {
+    "id": "I9",
+    "severity": "High",
+    "reported": "Address: Hyderabad only; landmark, pincode; mobile mandatory; auto-fill by location",
+    "cause": "Address is a single free-text; no pincode or mobile check",
+    "required_change": "Structured address, pincode prefix check, mandatory mobile, Detect my location",
+    "test_ids": "BKG-11 to BKG-26"
+  },
+  {
+    "id": "I10",
+    "severity": "High",
+    "reported": "Login: remove OTP and Admin Portal; Google preferred; direct to Home after register; same account every time",
+    "cause": "Phone OTP tab, admin link, profile-setup gate",
+    "required_change": "One login screen, Google first, no profile gate, persistent session",
+    "test_ids": "AUTH-01 to AUTH-24"
+  },
+  {
+    "id": "I11",
+    "severity": "High",
+    "reported": "Admin sign-in by admin email only; remember me; change password",
+    "cause": "Separate admin login with fixed credentials",
+    "required_change": "Same login; admin claim routes to /admin; change password via Gmail link",
+    "test_ids": "ADA-01 to ADA-10"
+  },
+  {
+    "id": "I12",
+    "severity": "Medium",
+    "reported": "Valid emails like .dental rejected",
+    "cause": "Regex allows 2-4 letter endings only",
+    "required_change": "Looser email rule",
+    "test_ids": "AUTH-08"
+  },
+  {
+    "id": "I13",
+    "severity": "High",
+    "reported": "Admin dashboard tiles not actionable; unclear numbers; revenue meaning unclear",
+    "cause": "Static tiles; whole collections streamed",
+    "required_change": "Tappable KPIs, Needs attention, aggregation queries, 'Paid to technicians' label",
+    "test_ids": "DSH-01 to DSH-10"
+  },
+  {
+    "id": "I14",
+    "severity": "High",
+    "reported": "Status buttons not linked; In Progress should need assignment; doctor and admin states must sync",
+    "cause": "No transition enforcement or doctor actions",
+    "required_change": "5-status model, enforced in UI and rules, live sync, event history",
+    "test_ids": "ADM-08 to ADM-18, DR-03 to DR-15"
+  },
+  {
+    "id": "I15",
+    "severity": "High",
+    "reported": "Doctor closes ticket with amount paid to technician; denial/cancel handling",
+    "cause": "Not built",
+    "required_change": "Mark as completed + amount + confirm; close on behalf; mandatory cancel reasons for doctor and admin",
+    "test_ids": "DR-03 to DR-14, ADM-10 to ADM-14"
+  },
+  {
+    "id": "I16",
+    "severity": "High",
+    "reported": "Doctor needs future time slots (9-12, 2-5, 6-9)",
+    "cause": "Not built",
+    "required_change": "Date + slot picker, future only, server-checked",
+    "test_ids": "SLT-01 to SLT-13"
+  },
+  {
+    "id": "I17",
+    "severity": "Medium",
+    "reported": "Fee text (Rs 0, free visit, inspection charges) is misleading",
+    "cause": "Static copy",
+    "required_change": "Replace with 'free to use; pay technician directly'",
+    "test_ids": "BKG-29, UI-09"
+  },
+  {
+    "id": "I18",
+    "severity": "Medium",
+    "reported": "Fake technicians seeded from the app",
+    "cause": "Client seed routine",
+    "required_change": "Remove; admin adds real technicians",
+    "test_ids": "ADT-03 to ADT-06"
+  },
+  {
+    "id": "I19",
+    "severity": "High",
+    "reported": "Debug build; dev/staging/prod configs; staging ribbon",
+    "cause": "Debug APK (~175 MB)",
+    "required_change": "Flavors; signed release AAB; prod only on prod project",
+    "test_ids": "DEP-01 to DEP-12, SEC-12, UI-06"
+  },
+  {
+    "id": "I20",
+    "severity": "Medium",
+    "reported": "Scale to 1 lakh users",
+    "cause": "Streams of full collections",
+    "required_change": "Pagination, aggregation, indexes, budgets, App Check",
+    "test_ids": "PERF-01 to PERF-08"
+  },
+  {
+    "id": "I21",
+    "severity": "Medium",
+    "reported": "Missing for store launch: account deletion, privacy policy, support number, crash reporting",
+    "cause": "Not present",
+    "required_change": "Add Profile screen, links, Crashlytics, Remote Config min version",
+    "test_ids": "PRF-01, PRF-05, PRF-06, DEP-08, DEP-09"
+  },
+  {
+    "id": "Causes come from reading the APK's embedded code and manifest; both uploaded APKs contain the same code. Confirm each on a running build.",
+    "severity": "",
+    "reported": "",
+    "cause": "",
+    "required_change": "",
+    "test_ids": ""
+  }
+]

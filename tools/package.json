@@ -1,0 +1,12 @@
+{
+  "name": "riodent-admin-tools",
+  "version": "1.0.0",
+  "description": "Administrative scripts and Firebase Custom Claim management for RioDent",
+  "main": "set_admin_claim.js",
+  "scripts": {
+    "set-admin": "node set_admin_claim.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

@@ -7,31 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1085269643387:android:6d1d2782b9884c7b1ad2de",
-        "android_client_info": {
-          "package_name": "com.aistudio.riodent.kqvw"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:1085269643387:android:57beff18a7a651941ad2de",
         "android_client_info": {
           "package_name": "com.riodent.riodent"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1085269643387-s2099qlcmsp8rauhri2mqadg3e83pu2e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.riodent.riodent",
+            "certificate_hash": "952bb81bc2558146ad094a0b3ef4df642ecbc85b"
+          }
+        },
+        {
+          "client_id": "1085269643387-igg9srs61u1m15cv415j8vlapaa9nigg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg"
@@ -39,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085269643387-igg9srs61u1m15cv415j8vlapaa9nigg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

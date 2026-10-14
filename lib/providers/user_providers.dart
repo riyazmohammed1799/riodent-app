@@ -14,8 +14,14 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository(firestore: firestore);
 });
 
-/// Stream provider for all registered dentists (used in Admin Directory).
+/// Stream provider for recent registered dentists (limited to 20 for scalability).
 final registeredDentistsProvider = StreamProvider<List<UserModel>>((ref) {
   final userRepo = ref.watch(userRepositoryProvider);
-  return userRepo.streamAllDentists();
+  return userRepo.streamRecentDentists(limit: 50);
+});
+
+/// Future provider for total count of registered dentists using Firestore aggregate count().
+final dentistCountProvider = FutureProvider<int>((ref) async {
+  final userRepo = ref.watch(userRepositoryProvider);
+  return await userRepo.getDentistCount();
 });

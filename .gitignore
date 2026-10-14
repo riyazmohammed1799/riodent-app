@@ -57,5 +57,6 @@ key.properties
 *service-account*.json
 credentials.json
 
-# Firebase CLI Cache
+# Firebase CLI Cache & Node dependencies
 .firebase/
+**/node_modules/

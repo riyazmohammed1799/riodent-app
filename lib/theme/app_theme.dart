@@ -36,12 +36,21 @@ class AppTheme {
   static const Color textHint = Color(0xFF94A3B8);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
-  // ── Status Colors ─────────────────────────────────────────────
-  static const Color statusNew = Color(0xFF2563EB);
-  static const Color statusAssigned = Color(0xFF7C3AED);
-  static const Color statusInProgress = Color(0xFFD97706);
-  static const Color statusCompleted = Color(0xFF059669);
-  static const Color statusCancelled = Color(0xFF64748B);
+  // ── Status Colors (Master Design System) ────────────────────────
+  static const Color statusNew = Color(0xFFB45309); // Amber 700
+  static const Color statusNewBg = Color(0xFFFEF3C7); // Amber 100
+
+  static const Color statusAssigned = Color(0xFF0284C7); // Sky Blue 600
+  static const Color statusAssignedBg = Color(0xFFE0F2FE); // Sky Blue 100
+
+  static const Color statusInProgress = Color(0xFF0284C7); // Sky Blue 600
+  static const Color statusInProgressBg = Color(0xFFE0F2FE); // Sky Blue 100
+
+  static const Color statusCompleted = Color(0xFF15803D); // Emerald 700
+  static const Color statusCompletedBg = Color(0xFFDCFCE7); // Emerald 100
+
+  static const Color statusCancelled = Color(0xFFB91C1C); // Rose 700
+  static const Color statusCancelledBg = Color(0xFFFEE2E2); // Rose 100
 
   // ── Spacing ───────────────────────────────────────────────────
   static const double spacingXs = 4.0;
@@ -287,6 +296,247 @@ class AppTheme {
     );
   }
 
+  /// Dark ThemeData — medical-grade dark slate theme for low light clinical environments.
+  static ThemeData get darkTheme {
+
+    const darkBackground = Color(0xFF0F172A); // Slate 900
+    const darkSurface = Color(0xFF1E293B);    // Slate 800
+    const darkBorder = Color(0xFF334155);     // Slate 700
+    const darkPrimary = Color(0xFF38BDF8);    // Bright Clinical Cyan/Sky
+    const darkPrimaryContainer = Color(0xFF0369A1);
+    const darkSecondary = Color(0xFF2DD4BF);  // Teal Accent
+    const darkTextPrimary = Color(0xFFF8FAFC);
+    const darkTextSecondary = Color(0xFF94A3B8);
+    const darkTextHint = Color(0xFF64748B);
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      colorScheme: const ColorScheme.dark(
+        primary: darkPrimary,
+        onPrimary: Color(0xFF0F172A),
+        primaryContainer: darkPrimaryContainer,
+        secondary: darkSecondary,
+        onSecondary: Color(0xFF0F172A),
+        surface: darkSurface,
+        onSurface: darkTextPrimary,
+        error: errorColor,
+        onError: Colors.white,
+      ),
+      scaffoldBackgroundColor: darkBackground,
+
+      // AppBar
+      appBarTheme: AppBarTheme(
+        backgroundColor: darkSurface,
+        foregroundColor: darkTextPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        centerTitle: true,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: darkTextPrimary,
+          letterSpacing: -0.2,
+        ),
+        iconTheme: const IconThemeData(color: darkTextPrimary),
+      ),
+
+      // Elevated Button
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: darkPrimary,
+          foregroundColor: const Color(0xFF0F172A),
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
+          ),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+        ),
+      ),
+
+      // Outlined Button
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: darkPrimary,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+          side: const BorderSide(color: darkBorder, width: 1.5),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.1,
+          ),
+        ),
+      ),
+
+      // Text Button
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: darkPrimary,
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // Input Decoration
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkSurface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: spacingMd,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: const BorderSide(color: darkPrimary, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          borderSide: const BorderSide(color: errorColor),
+        ),
+        hintStyle: GoogleFonts.plusJakartaSans(
+          color: darkTextHint,
+          fontSize: 14,
+        ),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          color: darkTextSecondary,
+          fontSize: 14,
+        ),
+      ),
+
+      // Card
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+          side: const BorderSide(color: darkBorder, width: 1),
+        ),
+        margin: const EdgeInsets.symmetric(
+          horizontal: spacingMd,
+          vertical: spacingSm,
+        ),
+      ),
+
+      // Divider
+      dividerTheme: const DividerThemeData(
+        color: darkBorder,
+        thickness: 1,
+        space: 1,
+      ),
+
+      // Chip
+      chipTheme: ChipThemeData(
+        backgroundColor: darkSurface,
+        selectedColor: darkPrimaryContainer,
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: darkTextPrimary,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusSm),
+        ),
+        side: const BorderSide(color: darkBorder),
+      ),
+
+      // Text Theme
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w800,
+          color: darkTextPrimary,
+          letterSpacing: -0.5,
+          height: 1.25,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: darkTextPrimary,
+          letterSpacing: -0.3,
+          height: 1.3,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+          color: darkTextPrimary,
+          letterSpacing: -0.2,
+          height: 1.3,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: darkTextPrimary,
+          letterSpacing: -0.2,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: darkTextPrimary,
+          letterSpacing: -0.1,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: darkTextPrimary,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: darkTextPrimary,
+          height: 1.5,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: darkTextSecondary,
+          height: 1.5,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: darkTextSecondary,
+          height: 1.4,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: darkTextPrimary,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: darkTextSecondary,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: darkTextHint,
+        ),
+      ),
+    );
+  }
+
+
   /// Returns the status color for a given request status string.
   static Color getStatusColor(String status) {
     switch (status.toUpperCase()) {
@@ -305,19 +555,54 @@ class AppTheme {
     }
   }
 
+  /// Returns the status background tint color.
+  static Color getStatusBgColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'NEW':
+        return statusNewBg;
+      case 'ASSIGNED':
+        return statusAssignedBg;
+      case 'IN_PROGRESS':
+        return statusInProgressBg;
+      case 'COMPLETED':
+        return statusCompletedBg;
+      case 'CANCELLED':
+        return statusCancelledBg;
+      default:
+        return const Color(0xFFF1F5F9);
+    }
+  }
+
+  /// Returns the status icon for a given request status string.
+  static IconData getStatusIcon(String status) {
+    switch (status.toUpperCase()) {
+      case 'NEW':
+        return Icons.schedule_rounded;
+      case 'ASSIGNED':
+      case 'IN_PROGRESS':
+        return Icons.engineering_rounded;
+      case 'COMPLETED':
+        return Icons.check_circle_rounded;
+      case 'CANCELLED':
+        return Icons.block_rounded;
+      default:
+        return Icons.info_outline_rounded;
+    }
+  }
+
   /// Returns a human-readable label for a given request status string.
   static String getStatusLabel(String status) {
     switch (status.toUpperCase()) {
       case 'NEW':
-        return 'Received';
+        return 'Pending Dispatch';
       case 'ASSIGNED':
         return 'Technician Assigned';
       case 'IN_PROGRESS':
-        return 'In Progress';
+        return 'Active / In Progress';
       case 'COMPLETED':
         return 'Completed';
       case 'CANCELLED':
-        return 'Cancelled';
+        return 'Service Denied / Cancelled';
       default:
         return status;
     }

@@ -5,7 +5,16 @@ import '../../models/booking_config_model.dart';
 import '../../providers/settings_providers.dart';
 import '../../theme/app_theme.dart';
 
-/// Screen where the admin manages equipment categories and system policies.
+/// Screen where the admin manages equipment categories, slots, pincodes, cancel reasons,
+/// support contact, and system policies.
+/// Implements Section 3.8:
+/// - Categories (add, rename, activate/deactivate; no hard delete)
+/// - Slots
+/// - Max days ahead
+/// - Serviceable pincode prefixes
+/// - Cancel reasons lists
+/// - Support phone
+/// - Max open requests per doctor
 class AdminSettingsScreen extends ConsumerStatefulWidget {
   const AdminSettingsScreen({super.key});
 
@@ -14,49 +23,77 @@ class AdminSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
-  final _newIssueTypeController = TextEditingController();
-  List<String> _issueTypes = [];
+  final _newCategoryController = TextEditingController();
+  final _supportPhoneController = TextEditingController();
+  final _pincodesController = TextEditingController();
+  final _maxDaysController = TextEditingController();
+  final _maxOpenRequestsController = TextEditingController();
+
+  List<IssueTypeItem> _categories = [];
+  List<String> _doctorCancelReasons = [];
+  List<String> _adminCancelReasons = [];
+
   bool _isInitialized = false;
   bool _isSaving = false;
 
   @override
   void dispose() {
-    _newIssueTypeController.dispose();
+    _newCategoryController.dispose();
+    _supportPhoneController.dispose();
+    _pincodesController.dispose();
+    _maxDaysController.dispose();
+    _maxOpenRequestsController.dispose();
     super.dispose();
   }
 
   void _initFields(BookingConfigModel config) {
     if (_isInitialized) return;
-    _issueTypes = List<String>.from(config.issueTypes);
+    _categories = List<IssueTypeItem>.from(config.issueTypes);
+    _supportPhoneController.text = config.supportPhone;
+    _pincodesController.text = config.serviceablePincodePrefixes.join(', ');
+    _maxDaysController.text = config.maxDaysAhead.toString();
+    _maxOpenRequestsController.text = config.maxOpenRequests.toString();
+    _doctorCancelReasons = List<String>.from(config.doctorCancelReasons);
+    _adminCancelReasons = List<String>.from(config.adminCancelReasons);
     _isInitialized = true;
   }
 
   Future<void> _handleSave() async {
     setState(() => _isSaving = true);
     final repo = ref.read(settingsRepositoryProvider);
+    final currentConfig = ref.read(bookingConfigProvider).value ?? BookingConfigModel.defaultConfig();
 
-    final currentConfig = ref.read(bookingConfigProvider).value ??
-        BookingConfigModel.defaultConfig();
+    final prefixes = _pincodesController.text
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final maxDays = int.tryParse(_maxDaysController.text.trim()) ?? currentConfig.maxDaysAhead;
+    final maxOpen = int.tryParse(_maxOpenRequestsController.text.trim()) ?? currentConfig.maxOpenRequests;
 
     final updated = BookingConfigModel(
-      listedFee: 0.0,
-      payableFee: 0.0,
-      currency: 'INR',
-      offerEnabled: false,
-      offerLabel: '100% Free Service',
-      maxPhotos: currentConfig.maxPhotos,
-      maxPhotoSizeMB: currentConfig.maxPhotoSizeMB,
-      maxVideoSizeMB: currentConfig.maxVideoSizeMB,
-      maxVideoDurationSec: currentConfig.maxVideoDurationSec,
-      issueTypes: _issueTypes,
+      issueTypes: _categories,
+      slots: currentConfig.slots,
+      maxDaysAhead: maxDays,
+      minLeadMinutes: currentConfig.minLeadMinutes,
+      serviceablePincodePrefixes: prefixes.isNotEmpty ? prefixes : currentConfig.serviceablePincodePrefixes,
+      doctorCancelReasons: _doctorCancelReasons,
+      adminCancelReasons: _adminCancelReasons,
+      supportPhone: _supportPhoneController.text.trim().isNotEmpty ? _supportPhoneController.text.trim() : currentConfig.supportPhone,
+      maxOpenRequests: maxOpen,
       updatedAt: DateTime.now(),
     );
 
     try {
       await repo.updateBookingConfig(updated);
+      ref.invalidate(bookingConfigProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Configuration saved to Firebase')),
+        const SnackBar(
+          backgroundColor: AppTheme.successColor,
+          content: Text('Settings saved to Firebase Firestore'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -68,12 +105,53 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     }
   }
 
-  void _addIssueType() {
-    final text = _newIssueTypeController.text.trim();
-    if (text.isNotEmpty && !_issueTypes.contains(text)) {
+  void _addCategory() {
+    final label = _newCategoryController.text.trim();
+    if (label.isEmpty) return;
+    final code = label.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+
+    if (_categories.any((c) => c.code == code)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category with this code already exists.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _categories.add(IssueTypeItem(code: code, label: label, active: true));
+      _newCategoryController.clear();
+    });
+  }
+
+  void _renameCategory(int index) async {
+    final cat = _categories[index];
+    final renameController = TextEditingController(text: cat.label);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Category'),
+        content: TextField(
+          controller: renameController,
+          decoration: const InputDecoration(labelText: 'Category Label'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(renameController.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty) {
       setState(() {
-        _issueTypes.add(text);
-        _newIssueTypeController.clear();
+        _categories[index] = IssueTypeItem(
+          code: cat.code,
+          label: newName,
+          active: cat.active,
+        );
       });
     }
   }
@@ -100,7 +178,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Free Model Policy Card
+                // Equipment Categories Section
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -111,35 +189,79 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text('Equipment Categories (Active / Inactive)', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Categories can be added, renamed, or deactivated. Deactivated items are hidden from doctors but preserve past booking history.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      const Divider(height: 20),
+
+                      // Add Category Row
                       Row(
                         children: [
-                          const Icon(Icons.verified_rounded, color: AppTheme.successColor, size: 22),
-                          const SizedBox(width: 8),
-                          Text(
-                            'App Service Model: 100% Free',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.successColor,
+                          Expanded(
+                            child: TextField(
+                              controller: _newCategoryController,
+                              decoration: const InputDecoration(
+                                hintText: 'New category name (e.g. Dental Laser)',
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _addCategory,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add'),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'RioDent is a complimentary service platform. Clinics are never charged fees for technician dispatch, diagnosis, or booking requests.',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryLight,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        ),
-                        child: const Text(
-                          'Charge Policy: ₹0 across all categories',
-                          style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600, fontSize: 12),
-                        ),
+                      const SizedBox(height: 14),
+
+                      // Category List
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _categories.length,
+                        separatorBuilder: (_, i) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = _categories[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              item.label,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                decoration: item.active ? null : TextDecoration.lineThrough,
+                                color: item.active ? AppTheme.textPrimary : AppTheme.textHint,
+                              ),
+                            ),
+                            subtitle: Text('Code: ${item.code}', style: const TextStyle(fontSize: 11)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 18),
+                                  tooltip: 'Rename Label',
+                                  onPressed: () => _renameCategory(index),
+                                ),
+                                Switch(
+                                  value: item.active,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _categories[index] = IssueTypeItem(
+                                        code: item.code,
+                                        label: item.label,
+                                        active: val,
+                                      );
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -147,69 +269,81 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
 
                 const SizedBox(height: 16),
 
-                // Issue Types Configuration
-                Card(
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spacingMd),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Equipment / Problem Categories', style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Doctors will see these categories when booking assistance.',
-                          style: theme.textTheme.bodySmall,
+                // Operational Limits & Service Area
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: AppTheme.cardBorderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Service Area & Rules', style: theme.textTheme.titleMedium),
+                      const Divider(height: 20),
+
+                      TextFormField(
+                        controller: _supportPhoneController,
+                        decoration: const InputDecoration(
+                          labelText: 'Support Desk Phone *',
+                          hintText: '+91 98765 43210',
+                          prefixIcon: Icon(Icons.phone_outlined),
                         ),
-                        const Divider(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _newIssueTypeController,
-                                decoration: const InputDecoration(
-                                  hintText: 'Add new category (e.g. Ultrasonic Scaler)',
-                                ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextFormField(
+                        controller: _pincodesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Serviceable Pincode Prefixes (comma separated) *',
+                          hintText: '500, 501, 502',
+                          prefixIcon: Icon(Icons.pin_drop_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _maxDaysController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Max Days Ahead',
+                                hintText: '7',
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            IconButton.filled(
-                              onPressed: _addIssueType,
-                              icon: const Icon(Icons.add),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _maxOpenRequestsController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Max Open Req / Doctor',
+                                hintText: '3',
+                              ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _issueTypes.map((type) {
-                            return Chip(
-                              label: Text(type),
-                              deleteIcon: const Icon(Icons.close, size: 16),
-                              onDeleted: () {
-                                setState(() => _issueTypes.remove(type));
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
-                ElevatedButton(
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                   onPressed: _isSaving ? null : _handleSave,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Save Categories to Firebase'),
+                  icon: const Icon(Icons.save_rounded, size: 20),
+                  label: _isSaving
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Save Configuration Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
+
+                const SizedBox(height: 30),
               ],
             ),
           );

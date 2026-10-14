@@ -1,14 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
 
-/// Premier login and registration screen for dental clinics and doctors.
+/// Premier unified sign-in and registration screen for dental clinics and doctors.
+/// Per specifications:
+/// - Single login screen (no admin link, no demo buttons, no OTP tab)
+/// - Google Sign-In prominent first
+/// - Clean Register & Sign-in with Email & Password
+/// - Direct to Home upon successful registration or sign-in
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,39 +20,25 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
-  // Email form
-  final _emailFormKey = GlobalKey<FormState>();
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final _clinicController = TextEditingController();
+
   bool _isSignUpMode = false;
   bool _obscurePassword = true;
-
-  // Phone form
-  final _phoneFormKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
-
   bool _isLoading = false;
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  String? _successMessage;
 
   @override
   void dispose() {
-    _tabController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
     _clinicController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -56,31 +46,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'user-not-found':
-          return 'No account found with this email. Please click "Register New Clinic".';
+          return 'No account found with this email. Tap "New to RioDent? Register".';
         case 'wrong-password':
         case 'invalid-credential':
           return 'Incorrect email or password. Please verify your credentials.';
         case 'email-already-in-use':
-          return 'An account already exists for this email. Please switch to Sign In.';
+          return 'An account already exists for this email. Please sign in instead.';
         case 'invalid-email':
           return 'Please enter a valid email address.';
         case 'weak-password':
           return 'Password must be at least 6 characters.';
         case 'user-disabled':
-          return 'This account has been disabled. Please contact support.';
+          return 'This account has been disabled. Please contact RioDent support.';
         case 'too-many-requests':
           return 'Too many attempts. Please try again in a few moments.';
+        case 'network-request-failed':
+          return 'Unable to connect. Please check your internet connection and try again.';
         default:
           return error.message ?? 'Authentication failed. Please try again.';
       }
     }
-    return error.toString();
+    return 'Authentication error: $error';
   }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _successMessage = null;
     });
 
     final authRepo = ref.read(authRepositoryProvider);
@@ -90,14 +83,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       final credential = await authRepo.signInWithGoogle();
       final user = credential?.user;
       if (user != null) {
+        // Create user record if first-time user
         final existing = await userRepo.getUser(user.uid);
         if (existing == null) {
+          final doctorName = user.displayName?.trim().isNotEmpty == true
+              ? user.displayName!.trim()
+              : 'Doctor';
           await userRepo.createUser(
             uid: user.uid,
-            phone: user.phoneNumber ?? '',
-            displayName: user.displayName,
+            displayName: doctorName,
             email: user.email,
-            role: AppConstants.roleDentist,
+            phone: user.phoneNumber ?? '',
+            clinicName: 'Dental Clinic',
+            clinicAddress: 'Hyderabad, Telangana',
           );
         }
       }
@@ -105,17 +103,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Google Sign-In failed: ${_mapAuthError(e)}';
+        _errorMessage = _mapAuthError(e);
       });
     }
   }
 
   Future<void> _handleEmailAuth() async {
-    if (!_emailFormKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _successMessage = null;
     });
 
     final authRepo = ref.read(authRepositoryProvider);
@@ -123,34 +122,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
     try {
       if (_isSignUpMode) {
+        // Register new doctor account
         final credential = await authRepo.registerWithEmailPassword(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         final user = credential.user;
         if (user != null) {
+          final doctorName = _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : 'Doctor';
+          final clinicName = _clinicController.text.trim().isNotEmpty
+              ? _clinicController.text.trim()
+              : 'Dental Clinic';
+
           await userRepo.createUser(
             uid: user.uid,
-            phone: '',
-            displayName: _nameController.text.trim().isNotEmpty
-                ? _nameController.text.trim()
-                : 'Doctor',
+            displayName: doctorName,
+            clinicName: clinicName,
             email: user.email,
-            role: AppConstants.roleDentist,
           );
-          if (_clinicController.text.trim().isNotEmpty) {
-            await userRepo.updateDentistProfile(
-              uid: user.uid,
-              displayName: _nameController.text.trim(),
-              clinicName: _clinicController.text.trim(),
-              clinicAddress: '',
-              email: user.email,
-            );
-          }
+          // Directly proceeds to Home via router state listener
         }
       } else {
+        // Sign in existing account (Doctor or Admin)
         await authRepo.signInWithEmailPassword(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
@@ -167,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     final email = _emailController.text.trim();
     if (email.isEmpty || Validators.email(email) != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your clinic email above first.')),
+        const SnackBar(content: Text('Please enter your registered email address first.')),
       );
       return;
     }
@@ -187,146 +184,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
-  Future<void> _handleInstantDemoLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final authRepo = ref.read(authRepositoryProvider);
-    final userRepo = ref.read(userRepositoryProvider);
-
-    try {
-      final credential = await authRepo.signInOrRegisterDemoDentist();
-      final user = credential.user;
-      if (user != null) {
-        final existing = await userRepo.getUser(user.uid);
-        if (existing == null) {
-          await userRepo.createUser(
-            uid: user.uid,
-            phone: '+919876543210',
-            displayName: 'Dr. Priya Sharma',
-            email: user.email,
-            role: AppConstants.roleDentist,
-          );
-          await userRepo.updateDentistProfile(
-            uid: user.uid,
-            displayName: 'Dr. Priya Sharma',
-            clinicName: 'Smile Care Dental Clinic',
-            clinicAddress: '123 Brigade Road, Bengaluru, Karnataka 560001',
-            email: user.email,
-          );
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Instant demo login failed: $e';
-      });
-    }
-  }
-
-  Future<void> _handleSendOtp() async {
-    if (!_phoneFormKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final formattedPhone = Validators.toE164(_phoneController.text);
-    final authRepo = ref.read(authRepositoryProvider);
-
-    try {
-      await authRepo.verifyPhoneNumber(
-        phoneNumber: formattedPhone,
-        onVerificationCompleted: (credential) async {
-          await authRepo.signInWithCredential(credential);
-        },
-        onVerificationFailed: (exception) {
-          if (!mounted) return;
-          setState(() {
-            _isLoading = false;
-            _errorMessage = exception.message ?? 'Verification failed. Please try again.';
-          });
-        },
-        onCodeSent: (verificationId, resendToken) {
-          if (!mounted) return;
-          setState(() => _isLoading = false);
-          context.push('/otp', extra: {
-            'verificationId': verificationId,
-            'phone': formattedPhone,
-            'resendToken': resendToken,
-          });
-        },
-        onCodeAutoRetrievalTimeout: (_) {},
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = e.toString();
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primaryColor,
-                backgroundColor: AppTheme.primaryLight,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                ),
-              ),
-              onPressed: () => context.push('/admin/login'),
-              icon: const Icon(Icons.admin_panel_settings_rounded, size: 18),
-              label: const Text('Admin Portal'),
-            ),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Brand Header
+                  const SizedBox(height: 12),
+                  // App Brand Header
                   Center(
                     child: Container(
-                      width: 68,
-                      height: 68,
+                      width: 72,
+                      height: 72,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.25),
-                            blurRadius: 16,
+                            color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                            blurRadius: 18,
                             offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.medical_services_rounded,
-                        size: 36,
-                        color: Colors.white,
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        'assets/images/riodent_icon.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AppTheme.primaryColor,
+                          child: const Icon(
+                            Icons.medical_services_rounded,
+                            size: 36,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -341,44 +242,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Certified Dental Technician Network',
+                    AppConstants.appTagline,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppTheme.secondaryColor,
-                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppTheme.successColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.verified_rounded, size: 14, color: AppTheme.successColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              '100% Free Clinic Service',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppTheme.successColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryLight,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: const Text(
+                        'Hyderabad Launch Area',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
+                    ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // Google Sign-In Action
+                  // 1. Prominent Google Sign-In Button
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -394,26 +286,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
                       width: 20,
                       height: 20,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata_rounded, size: 24),
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.g_mobiledata_rounded, size: 24),
                     ),
                     label: const Text(
                       'Continue with Google',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
 
+                  // Divider
                   Row(
                     children: [
                       const Expanded(child: Divider()),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'OR USE EMAIL / PHONE',
+                          'OR',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: AppTheme.textHint,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
                           ),
                         ),
                       ),
@@ -421,43 +316,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     ],
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
 
-                  // Tab selector: Email vs Mobile OTP
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: TabBar(
-                      controller: _tabController,
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      indicator: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      labelColor: AppTheme.primaryColor,
-                      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                      unselectedLabelColor: AppTheme.textSecondary,
-                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                      tabs: const [
-                        Tab(text: 'Email & Password'),
-                        Tab(text: 'Mobile OTP'),
-                      ],
-                      onTap: (_) => setState(() => _errorMessage = null),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
+                  // Error / Success Message Banners
                   if (_errorMessage != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -485,238 +346,191 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     ),
                   ],
 
-                  // Tab View
-                  AnimatedBuilder(
-                    animation: _tabController,
-                    builder: (context, _) {
-                      return _tabController.index == 0
-                          ? _buildEmailPasswordForm(theme)
-                          : _buildPhoneForm(theme);
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 1-Click Instant Demo Login for Doctor
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: AppTheme.cardBorderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.flash_on_rounded, color: AppTheme.warningColor, size: 20),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Instant Testing Access',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
+                  if (_successMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline_rounded,
+                              color: AppTheme.successColor, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _successMessage!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppTheme.successColor,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Test the dentist workflow immediately as Dr. Priya Sharma without SMS verification.',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.secondaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: _isLoading ? null : _handleInstantDemoLogin,
-                          icon: const Icon(Icons.login_rounded, size: 18),
-                          label: const Text('1-Click Doctor Test Login'),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Form Container
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                      border: Border.all(color: AppTheme.cardBorderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            _isSignUpMode ? 'Register New Clinic' : 'Sign In to Your Clinic',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          if (_isSignUpMode) ...[
+                            // Doctor Full Name
+                            TextFormField(
+                              controller: _nameController,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: const InputDecoration(
+                                labelText: 'Doctor Name *',
+                                hintText: 'e.g. Dr. Priya Sharma',
+                                prefixIcon: Icon(Icons.person_outline_rounded),
+                              ),
+                              validator: (val) => Validators.required(val, 'Doctor name'),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Clinic Name
+                            TextFormField(
+                              controller: _clinicController,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: const InputDecoration(
+                                labelText: 'Clinic Name *',
+                                hintText: 'e.g. Smile Care Dental Hospital',
+                                prefixIcon: Icon(Icons.local_hospital_outlined),
+                              ),
+                              validator: (val) => Validators.required(val, 'Clinic name'),
+                            ),
+                            const SizedBox(height: 14),
+                          ],
+
+                          // Email Field
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            decoration: const InputDecoration(
+                              labelText: 'Email Address *',
+                              hintText: 'doctor@clinic.dental',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            validator: Validators.email,
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Password Field
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: 'Password *',
+                              hintText: 'Minimum 6 characters',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
+                            ),
+                            validator: Validators.password,
+                          ),
+
+                          if (!_isSignUpMode) ...[
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _isLoading ? null : _handleForgotPassword,
+                                child: const Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(height: 18),
+
+                          // Submit Action
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: _isLoading ? null : _handleEmailAuth,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Text(
+                                    _isSignUpMode ? 'Create Clinic Account' : 'Sign In',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+
+                  const SizedBox(height: 18),
+
+                  // Mode Switcher (Sign In vs Register)
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isSignUpMode = !_isSignUpMode;
+                          _errorMessage = null;
+                          _successMessage = null;
+                        });
+                      },
+                      child: Text(
+                        _isSignUpMode
+                            ? 'Already have an account? Sign In'
+                            : 'New to RioDent? Register Clinic',
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmailPasswordForm(ThemeData theme) {
-    return Form(
-      key: _emailFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _isSignUpMode ? 'Register New Clinic' : 'Doctor Sign In',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryDark,
-                ),
-              ),
-              TextButton(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        setState(() {
-                          _isSignUpMode = !_isSignUpMode;
-                          _errorMessage = null;
-                        });
-                      },
-                child: Text(
-                  _isSignUpMode ? 'Already registered? Sign In' : 'New Clinic? Register',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          if (_isSignUpMode) ...[
-            Text('Doctor Full Name', style: theme.textTheme.labelMedium),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Dr. Priya Sharma',
-                prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
-              ),
-              validator: (v) => _isSignUpMode ? Validators.required(v, 'Doctor name') : null,
-              enabled: !_isLoading,
-            ),
-            const SizedBox(height: 12),
-            Text('Clinic / Hospital Name', style: theme.textTheme.labelMedium),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _clinicController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Smile Dental Care Clinic',
-                prefixIcon: Icon(Icons.local_hospital_outlined, size: 20),
-              ),
-              validator: (v) => _isSignUpMode ? Validators.required(v, 'Clinic name') : null,
-              enabled: !_isLoading,
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          Text('Clinic Email Address', style: theme.textTheme.labelMedium),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              hintText: 'doctor@clinic.com',
-              prefixIcon: Icon(Icons.email_outlined, size: 20),
-            ),
-            validator: Validators.email,
-            enabled: !_isLoading,
-          ),
-          const SizedBox(height: 12),
-
-          Text('Password', style: theme.textTheme.labelMedium),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              hintText: _isSignUpMode ? 'Create password (min 6 characters)' : 'Enter password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  size: 20,
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ),
-            ),
-            validator: Validators.password,
-            enabled: !_isLoading,
-          ),
-
-          if (!_isSignUpMode) ...[
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _isLoading ? null : _handleForgotPassword,
-                child: const Text('Forgot Password?'),
-              ),
-            ),
-          ] else
-            const SizedBox(height: 16),
-
-          ElevatedButton(
-            onPressed: _isLoading ? null : _handleEmailAuth,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : Text(_isSignUpMode ? 'Register Clinic Account' : 'Sign In as Doctor'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhoneForm(ThemeData theme) {
-    return Form(
-      key: _phoneFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Dentist Mobile Number', style: theme.textTheme.labelMedium),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            maxLength: 10,
-            decoration: const InputDecoration(
-              prefixText: '+91 ',
-              hintText: 'Enter 10-digit number',
-              prefixIcon: Icon(Icons.phone_android_rounded, size: 20),
-              counterText: '',
-            ),
-            validator: Validators.phoneNumber,
-            enabled: !_isLoading,
-          ),
-          const SizedBox(height: 14),
-          ElevatedButton(
-            onPressed: _isLoading ? null : _handleSendOtp,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Get Verification OTP'),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _isLoading
-                ? null
-                : () {
-                    setState(() {
-                      _phoneController.text = '9876543210';
-                      _errorMessage = null;
-                    });
-                  },
-            icon: const Icon(Icons.touch_app_rounded, size: 16),
-            label: const Text('Fill Test Phone (9876543210)'),
-          ),
-        ],
       ),
     );
   }
