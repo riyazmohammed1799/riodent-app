@@ -105,6 +105,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (confirm == true) {
       await ref.read(authRepositoryProvider).signOut();
+      if (mounted) {
+        context.go('/login');
+      }
     }
   }
 
@@ -171,10 +174,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (confirm2 == true) {
       try {
+        setState(() => _isSaving = true);
         await ref.read(userRepositoryProvider).deleteUserAccount(user.uid);
         await ref.read(authRepositoryProvider).deleteAccount();
+        await ref.read(authRepositoryProvider).signOut();
+        if (mounted) {
+          context.go('/login');
+        }
       } catch (e) {
         if (!mounted) return;
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -207,7 +216,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         error: (err, _) => Center(child: Text('Error loading profile: $err')),
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('User profile not found'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle_outline_rounded, size: 64, color: AppTheme.primaryColor),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Account Signed Out or Deleted',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'You are no longer signed in to RioDent.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => context.go('/login'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text('Go to Sign In'),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           final allRequests = requestsAsync.value ?? [];

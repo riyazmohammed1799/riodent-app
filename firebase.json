@@ -32,7 +32,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": "web",
+    "public": "build/web",
     "cleanUrls": true,
     "ignore": [
       "firebase.json",

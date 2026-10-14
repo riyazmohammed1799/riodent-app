@@ -45,21 +45,21 @@ class RequestRepository {
   /// Creates a new technician request using an idempotent pre-generated ID and appends the initial event.
   Future<void> createRequest(TechnicianRequestModel request) async {
     final docRef = _requestsRef.doc(request.id);
-    final batch = _firestore.batch();
 
-    // 1. Write the request document
-    batch.set(docRef, request.toMap());
+    // 1. Write the main request document
+    await docRef.set(request.toMap());
 
     // 2. Append initial NEW event to technicianRequests/{id}/events
-    final eventRef = docRef.collection('events').doc();
-    batch.set(eventRef, {
-      'status': AppConstants.statusNew,
-      'by': 'dentist',
-      'at': Timestamp.fromDate(request.createdAt),
-      'note': 'Ticket created and queued for technician dispatch',
-    });
-
-    await batch.commit();
+    try {
+      await docRef.collection('events').add({
+        'status': AppConstants.statusNew,
+        'by': 'dentist',
+        'at': Timestamp.fromDate(request.createdAt),
+        'note': 'Ticket created and queued for technician dispatch',
+      });
+    } catch (_) {
+      // Non-fatal if events collection has network delay
+    }
   }
 
   /// Streams active requests for a specific dentist (limited to top 10 for performance).

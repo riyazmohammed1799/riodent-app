@@ -2,15 +2,14 @@
 class Validators {
   Validators._();
 
-  /// Validates an Indian phone number (10 digits, optionally prefixed with +91).
+  /// Validates an Indian phone number (strictly 10 digits, no more, no less).
   static String? phoneNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Phone number is required';
     }
-    // Remove spaces and country code prefix
-    final cleaned = value.trim().replaceAll(' ', '').replaceAll('+91', '');
+    final cleaned = value.trim().replaceAll(' ', '').replaceAll('-', '').replaceAll('+91', '');
     if (cleaned.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(cleaned)) {
-      return 'Enter a valid 10-digit phone number';
+      return 'Phone number must be exactly 10 digits';
     }
     return null;
   }

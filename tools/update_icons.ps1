@@ -1,7 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 
-$srcLogo = 'C:\Users\riyaz\.gemini\antigravity-ide\brain\d40f2edf-eb22-4cc1-bc9c-7661e3215b6e\riodent_logo_icon_1791968355362.jpg'
-$srcIcon = 'C:\Users\riyaz\.gemini\antigravity-ide\brain\d40f2edf-eb22-4cc1-bc9c-7661e3215b6e\riodent_app_icon_1791968378108.jpg'
+$srcLogo = 'C:\Users\riyaz\.gemini\antigravity-ide\brain\d40f2edf-eb22-4cc1-bc9c-7661e3215b6e\riodent_chair_white_logo_1791977497034.jpg'
+$srcIcon = 'C:\Users\riyaz\.gemini\antigravity-ide\brain\d40f2edf-eb22-4cc1-bc9c-7661e3215b6e\riodent_chair_white_logo_1791977497034.jpg'
 
 Copy-Item $srcLogo -Destination 'c:\Users\riyaz\riodent_claude\assets\images\riodent_logo.jpg' -Force
 Copy-Item $srcIcon -Destination 'c:\Users\riyaz\riodent_claude\assets\images\riodent_icon.jpg' -Force

@@ -32,9 +32,26 @@ class DentistHomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text(
-          dentist?.clinicName?.isNotEmpty == true ? dentist!.clinicName! : AppConstants.appName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              dentist?.displayName.isNotEmpty == true
+                  ? 'Dr. ${dentist!.displayName}'
+                  : AppConstants.appName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            if (dentist?.clinicName?.isNotEmpty == true)
+              Text(
+                dentist!.clinicName!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0284C7),
+                ),
+              ),
+          ],
         ),
         actions: [
           IconButton(
@@ -61,20 +78,17 @@ class DentistHomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Welcome & Clinic Greeting Card
+              // Welcome & Clinic Greeting Card (Clean Medical White & Blue)
               Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0F4C81), Color(0xFF093154)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -92,10 +106,10 @@ class DentistHomeScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 dentist?.displayName.isNotEmpty == true
-                                    ? 'Welcome, ${dentist!.displayName}'
+                                    ? 'Welcome, Dr. ${dentist!.displayName}'
                                     : 'Welcome Doctor',
                                 style: theme.textTheme.headlineSmall?.copyWith(
-                                  color: Colors.white,
+                                  color: AppTheme.primaryDark,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -104,8 +118,9 @@ class DentistHomeScreen extends ConsumerWidget {
                                 (dentist?.clinicAddress != null && dentist!.clinicAddress!.isNotEmpty)
                                     ? dentist.clinicAddress!
                                     : 'Hyderabad Certified Dental Network',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.85),
+                                style: const TextStyle(
+                                  color: Color(0xFF0284C7),
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
                                 maxLines: 1,
@@ -117,13 +132,14 @@ class DentistHomeScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.secondaryColor,
+                            color: const Color(0xFFE0F2FE),
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF7DD3FC)),
                           ),
                           child: const Text(
                             'HYDERABAD',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF0369A1),
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
@@ -132,22 +148,23 @@ class DentistHomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
+                        color: const Color(0xFFF0F9FF),
                         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: const Color(0xFFE0F2FE)),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.verified_rounded, color: Color(0xFF68D391), size: 18),
+                          Icon(Icons.verified_rounded, color: Color(0xFF0284C7), size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'RioDent platform is free to use. Fast on-site technician dispatch for your dental equipment.',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFF334155),
                                 fontSize: 12,
                                 height: 1.4,
                               ),
@@ -159,8 +176,8 @@ class DentistHomeScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primaryDark,
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -354,48 +371,6 @@ class DentistHomeScreen extends ConsumerWidget {
                     ),
                   );
                 },
-              ),
-
-              const SizedBox(height: 24),
-
-              // Service History Nav Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  border: Border.all(color: AppTheme.cardBorderColor),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryLight,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      ),
-                      child: const Icon(Icons.history_rounded, color: AppTheme.primaryColor),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('My Service History', style: theme.textTheme.titleMedium),
-                          const SizedBox(height: 2),
-                          Text(
-                            'View full history, status timeline, and payment records of all tickets.',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                      onPressed: () => context.push('/dentist/requests?filter=ALL'),
-                    ),
-                  ],
-                ),
               ),
 
               const SizedBox(height: 80),

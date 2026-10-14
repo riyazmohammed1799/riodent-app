@@ -268,34 +268,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-                  // 1. Prominent Google Sign-In Button
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.textPrimary,
-                      side: const BorderSide(color: AppTheme.cardBorderColor, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
+                  // 1. Prominently Highlighted Google Sign-In Hero Button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(color: const Color(0xFF0284C7), width: 2.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0284C7).withValues(alpha: 0.16),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        onTap: _isLoading ? null : _handleGoogleSignIn,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.network(
+                                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                                  width: 22,
+                                  height: 22,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.g_mobiledata_rounded, size: 26, color: Color(0xFF0284C7)),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Continue with Google',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    onPressed: _isLoading ? null : _handleGoogleSignIn,
-                    icon: Image.network(
-                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                      width: 20,
-                      height: 20,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.g_mobiledata_rounded, size: 24),
-                    ),
-                    label: const Text(
-                      'Continue with Google',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Divider
                   Row(
@@ -525,7 +552,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  // Admin Login Shortcut for Testing
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isSignUpMode = false;
+                          _emailController.text = 'admin@riodent.com';
+                          _passwordController.text = 'RioDentAdmin2026!';
+                        });
+                      },
+                      icon: const Icon(Icons.admin_panel_settings_outlined, size: 14, color: AppTheme.textHint),
+                      label: const Text(
+                        'Admin Login (Testing)',
+                        style: TextStyle(color: AppTheme.textHint, fontSize: 12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

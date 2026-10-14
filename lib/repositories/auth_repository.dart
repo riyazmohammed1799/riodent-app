@@ -23,10 +23,16 @@ class AuthRepository {
 
   User? get currentUser => _firebaseAuth.currentUser;
 
-  /// Returns true if current authenticated user has the Firebase custom claim admin: true.
+  /// Returns true if current authenticated user has the Firebase custom claim admin: true or is known admin email.
   Future<bool> checkIsAdminClaim([bool forceRefresh = false]) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return false;
+    final email = user.email?.toLowerCase().trim();
+    if (email == 'riyaz.mohammed1799@gmail.com' ||
+        email == 'admin@riodent.in' ||
+        email == 'admin@riodent.com') {
+      return true;
+    }
     try {
       final tokenResult = await user.getIdTokenResult(forceRefresh);
       return tokenResult.claims?['admin'] == true;

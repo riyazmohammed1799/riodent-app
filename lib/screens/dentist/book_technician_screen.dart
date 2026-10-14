@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -352,42 +353,42 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Doctor & Clinic Name
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _doctorNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Doctor Name *',
-                                prefixIcon: Icon(Icons.person_outline),
-                              ),
-                              validator: (val) => Validators.required(val, 'Doctor name'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _clinicNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Clinic Name *',
-                                prefixIcon: Icon(Icons.local_hospital_outlined),
-                              ),
-                              validator: (val) => Validators.required(val, 'Clinic name'),
-                            ),
-                          ),
-                        ],
+                      // Doctor Name (Full width)
+                      TextFormField(
+                        controller: _doctorNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Doctor Name *',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (val) => Validators.required(val, 'Doctor name'),
                       ),
                       const SizedBox(height: 14),
 
-                      // Technician Contact Mobile
+                      // Clinic Name on separate new line
+                      TextFormField(
+                        controller: _clinicNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Clinic Name *',
+                          prefixIcon: Icon(Icons.local_hospital_outlined),
+                        ),
+                        validator: (val) => Validators.required(val, 'Clinic name'),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Technician Contact Mobile (Strictly 10 digits)
                       TextFormField(
                         controller: _phoneController,
-                        keyboardType: TextInputType.phone,
+                        keyboardType: TextInputType.number,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         decoration: const InputDecoration(
                           labelText: 'Technician Contact Mobile *',
                           hintText: '10 digits (for technician to call before visit)',
                           prefixIcon: Icon(Icons.phone_outlined),
+                          counterText: '',
                         ),
                         validator: Validators.phoneNumber,
                       ),

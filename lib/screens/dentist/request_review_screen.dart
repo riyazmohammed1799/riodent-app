@@ -331,12 +331,12 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
 
   Widget _buildDataRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 115,
             child: Text(
               label,
               style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
@@ -346,7 +346,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
           Expanded(
             child: Text(
               value.isNotEmpty ? value : '-',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3),
             ),
           ),
         ],
