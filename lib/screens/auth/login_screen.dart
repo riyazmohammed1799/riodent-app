@@ -203,8 +203,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // App Brand Header
                   Center(
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: 80,
+                      height: 80,
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -219,7 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       clipBehavior: Clip.antiAlias,
                       child: Image.asset(
                         'assets/images/riodent_icon.png',
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: AppTheme.primaryColor,
                           child: const Icon(

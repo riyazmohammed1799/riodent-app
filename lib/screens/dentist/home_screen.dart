@@ -32,25 +32,49 @@ class DentistHomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              dentist?.displayName.isNotEmpty == true
-                  ? 'Dr. ${dentist!.displayName}'
-                  : AppConstants.appName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            if (dentist?.clinicName?.isNotEmpty == true)
-              Text(
-                dentist!.clinicName!,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF0284C7),
-                ),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
               ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/riodent_icon.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(Icons.medical_services_rounded, color: AppTheme.primaryColor, size: 20),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dentist?.displayName.isNotEmpty == true
+                        ? 'Dr. ${dentist!.displayName}'
+                        : AppConstants.appName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (dentist?.clinicName?.isNotEmpty == true)
+                    Text(
+                      dentist!.clinicName!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0284C7),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
         actions: [

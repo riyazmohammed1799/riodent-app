@@ -19,12 +19,53 @@ class RioDentApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: AppConstants.appName,
+      title: '${AppConstants.appName} - ${AppConstants.appTagline}',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
+      builder: (context, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // When viewed on desktop/wide screens (> 640px), avoid full-width mobile stretching.
+            // Present a centered, elegant, professional layout with a clean subtle backdrop.
+            if (constraints.maxWidth > 640) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Scaffold(
+                backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                body: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 580),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.45)
+                              : const Color(0xFF0F172A).withValues(alpha: 0.08),
+                          blurRadius: 32,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                      border: Border.symmetric(
+                        vertical: BorderSide(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: ClipRect(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              );
+            }
+            return child ?? const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 }
