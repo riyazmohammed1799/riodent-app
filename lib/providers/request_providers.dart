@@ -68,14 +68,20 @@ final adminNeedsAttentionProvider = FutureProvider<List<TechnicianRequestModel>>
   return await repo.fetchNeedsAttention();
 });
 
-/// Aggregated count provider by status for Admin KPIs.
-final adminStatusCountProvider = FutureProvider.family<int, String>((ref, status) async {
+/// Stream of all requests for real-time aggregation.
+final adminAllRequestsProvider = StreamProvider<List<TechnicianRequestModel>>((ref) {
   final repo = ref.watch(requestRepositoryProvider);
-  return await repo.getStatusCount(status);
+  return repo.streamAllRequests(limit: 100);
 });
 
-/// Aggregated total reported payments to technicians in Rs.
-final adminTotalRevenueProvider = FutureProvider<double>((ref) async {
+/// Live real-time stream of aggregated count by status for Admin KPIs.
+final adminStatusCountProvider = StreamProvider.family<int, String>((ref, status) {
   final repo = ref.watch(requestRepositoryProvider);
-  return await repo.getTotalAmountPaid();
+  return repo.streamStatusCount(status);
+});
+
+/// Live real-time stream of aggregated total reported payments to technicians in Rs.
+final adminTotalRevenueProvider = StreamProvider<double>((ref) {
+  final repo = ref.watch(requestRepositoryProvider);
+  return repo.streamTotalAmountPaid();
 });

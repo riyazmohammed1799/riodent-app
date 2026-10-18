@@ -37,14 +37,25 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
   }
 
   Future<void> _handleAssignTechnician(TechnicianRequestModel req) async {
-    final activeTechs = ref.read(activeTechniciansProvider).value ?? [];
+    // 1. Check Riverpod cached stream value
+    List<TechnicianModel> activeTechs = ref.read(activeTechniciansProvider).value ?? [];
+
+    // 2. Fallback to direct async fetch if stream is warming up
     if (activeTechs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active technicians available in roster. Please add or activate technicians first.')),
-      );
-      return;
+      try {
+        activeTechs = await ref.read(technicianRepositoryProvider).getActiveTechnicians();
+      } catch (_) {}
     }
 
+    // 3. If no technician exists in roster, prompt admin to quickly add one and assign directly
+    if (activeTechs.isEmpty) {
+      if (!mounted) return;
+      final quickTech = await _showQuickAddTechnicianDialog(req);
+      if (quickTech == null) return;
+      activeTechs = [quickTech];
+    }
+
+    if (!mounted) return;
     TechnicianModel selectedTech = activeTechs.first;
 
     final confirmed = await showDialog<TechnicianModel>(
@@ -113,6 +124,69 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
         }
       }
     }
+  }
+
+  /// Fallback dialog when no active technicians exist in the roster yet.
+  Future<TechnicianModel?> _showQuickAddTechnicianDialog(TechnicianRequestModel req) async {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return await showDialog<TechnicianModel>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('No Technicians in Roster'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Add a technician below to immediately assign them to this ticket:',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Technician Name *', hintText: 'e.g. Ramesh Kumar'),
+                validator: (val) => Validators.required(val, 'Name'),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone Number (10 digits) *', hintText: '9876543210'),
+                validator: Validators.phoneNumber,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final name = nameCtrl.text.trim();
+                final phone = phoneCtrl.text.trim();
+                await ref.read(technicianRepositoryProvider).addTechnician(
+                  name: name,
+                  phone: phone,
+                  area: 'Hyderabad',
+                  specialization: req.issueLabel,
+                );
+                ref.invalidate(techniciansProvider);
+                ref.invalidate(activeTechniciansProvider);
+                final techs = await ref.read(technicianRepositoryProvider).getActiveTechnicians();
+                final created = techs.firstWhere((t) => t.phone == phone, orElse: () => techs.first);
+                if (ctx.mounted) Navigator.of(ctx).pop(created);
+              }
+            },
+            child: const Text('Add & Proceed'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleSetInProgress(TechnicianRequestModel req) async {
@@ -320,6 +394,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(activeTechniciansProvider);
     final reqAsync = ref.watch(requestDetailProvider(widget.requestId));
     final eventsAsync = ref.watch(requestEventsProvider(widget.requestId));
     final notesAsync = ref.watch(internalNotesProvider(widget.requestId));

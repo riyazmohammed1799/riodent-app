@@ -62,17 +62,18 @@ class RequestRepository {
     }
   }
 
-  /// Streams active requests for a specific dentist (limited to top 10 for performance).
-  Stream<List<TechnicianRequestModel>> streamDentistRequests(String dentistId, {int limit = 20}) {
+  /// Streams active requests for a specific dentist with in-memory sorting to avoid composite index failure.
+  Stream<List<TechnicianRequestModel>> streamDentistRequests(String dentistId, {int limit = 50}) {
     return _requestsRef
         .where('dentistId', isEqualTo: dentistId)
-        .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((doc) => TechnicianRequestModel.fromFirestore(doc))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -358,28 +359,47 @@ class RequestRepository {
   Future<QuerySnapshot<Map<String, dynamic>>> fetchAdminRequests({
     String? status,
     DocumentSnapshot? startAfterDoc,
-    int limit = 20,
+    int limit = 50,
   }) async {
     Query<Map<String, dynamic>> query = _requestsRef;
     if (status != null && status.isNotEmpty && status != 'ALL') {
       query = query.where('status', isEqualTo: status);
     }
-    query = query.orderBy('slotStart', descending: false).limit(limit);
     if (startAfterDoc != null) {
       query = query.startAfterDocument(startAfterDoc);
     }
-    return await query.get();
+    return await query.limit(limit).get();
   }
 
-  /// Streams requests filtered by status with limit 20.
-  Stream<List<TechnicianRequestModel>> streamAdminRequests({String? status, int limit = 20}) {
+  /// Streams requests filtered by status with in-memory sorting by slotStart.
+  /// Eliminates composite index requirement so all status tabs load instantly.
+  Stream<List<TechnicianRequestModel>> streamAdminRequests({String? status, int limit = 50}) {
     Query<Map<String, dynamic>> query = _requestsRef;
     if (status != null && status.isNotEmpty && status != 'ALL') {
       query = query.where('status', isEqualTo: status);
     }
-    return query.orderBy('slotStart', descending: false).limit(limit).snapshots().map((snap) {
-      return snap.docs.map((d) => TechnicianRequestModel.fromFirestore(d)).toList();
+    return query.limit(limit).snapshots().map((snap) {
+      final list = snap.docs.map((d) => TechnicianRequestModel.fromFirestore(d)).toList();
+      list.sort((a, b) => a.slotStart.compareTo(b.slotStart));
+      return list;
     });
+  }
+
+  /// Real-time stream of all requests for executive dashboard calculations.
+  Stream<List<TechnicianRequestModel>> streamAllRequests({int limit = 100}) {
+    return _requestsRef.limit(limit).snapshots().map((snap) {
+      final list = snap.docs.map((d) => TechnicianRequestModel.fromFirestore(d)).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  /// Real-time stream of requests count for a given status.
+  Stream<int> streamStatusCount(String status) {
+    return _requestsRef
+        .where('status', isEqualTo: status)
+        .snapshots()
+        .map((snap) => snap.docs.length);
   }
 
   /// Gets count of requests for a given status using Firestore aggregation query.
@@ -390,6 +410,21 @@ class RequestRepository {
     } catch (_) {
       return 0;
     }
+  }
+
+  /// Real-time stream of total reported payments to technicians in Rs.
+  Stream<double> streamTotalAmountPaid() {
+    return _requestsRef
+        .where('status', isEqualTo: AppConstants.statusCompleted)
+        .snapshots()
+        .map((snap) {
+      double total = 0.0;
+      for (final doc in snap.docs) {
+        final amount = (doc.data()['amountPaid'] as num?)?.toDouble() ?? 0.0;
+        total += amount;
+      }
+      return total;
+    });
   }
 
   /// Calculates total reported payments to technicians using completed requests.

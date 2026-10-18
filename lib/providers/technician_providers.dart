@@ -21,8 +21,8 @@ final techniciansProvider = StreamProvider<List<TechnicianModel>>((ref) {
   return repo.streamAllTechnicians();
 });
 
-/// Provider for count of active technicians.
-final activeTechnicianCountProvider = FutureProvider<int>((ref) async {
+/// Real-time stream provider for count of active technicians.
+final activeTechnicianCountProvider = StreamProvider<int>((ref) {
   final repo = ref.watch(technicianRepositoryProvider);
-  return await repo.getActiveTechnicianCount();
+  return repo.streamActiveCount();
 });

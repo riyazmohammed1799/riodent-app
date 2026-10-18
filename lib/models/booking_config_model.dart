@@ -118,6 +118,32 @@ class BookingConfigModel {
     this.updatedAt,
   });
 
+  BookingConfigModel copyWith({
+    List<IssueTypeItem>? issueTypes,
+    List<TimeSlotItem>? slots,
+    int? maxDaysAhead,
+    int? minLeadMinutes,
+    List<String>? serviceablePincodePrefixes,
+    List<String>? doctorCancelReasons,
+    List<String>? adminCancelReasons,
+    String? supportPhone,
+    int? maxOpenRequests,
+    DateTime? updatedAt,
+  }) {
+    return BookingConfigModel(
+      issueTypes: issueTypes ?? this.issueTypes,
+      slots: slots ?? this.slots,
+      maxDaysAhead: maxDaysAhead ?? this.maxDaysAhead,
+      minLeadMinutes: minLeadMinutes ?? this.minLeadMinutes,
+      serviceablePincodePrefixes: serviceablePincodePrefixes ?? this.serviceablePincodePrefixes,
+      doctorCancelReasons: doctorCancelReasons ?? this.doctorCancelReasons,
+      adminCancelReasons: adminCancelReasons ?? this.adminCancelReasons,
+      supportPhone: supportPhone ?? this.supportPhone,
+      maxOpenRequests: maxOpenRequests ?? this.maxOpenRequests,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   List<IssueTypeItem> get activeIssueTypes =>
       issueTypes.where((item) => item.active).toList();
 

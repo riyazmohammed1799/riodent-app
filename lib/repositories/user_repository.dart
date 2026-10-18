@@ -112,6 +112,11 @@ class UserRepository {
     return await query.get();
   }
 
+  /// Live real-time stream of registered doctors count.
+  Stream<int> streamDentistCount() {
+    return _usersRef.snapshots().map((snap) => snap.docs.length);
+  }
+
   /// Gets total registered doctors count using Firestore aggregation query.
   Future<int> getDentistCount() async {
     try {

@@ -84,6 +84,29 @@ class TechnicianRepository {
     });
   }
 
+  /// Directly fetches active technicians asynchronously.
+  Future<List<TechnicianModel>> getActiveTechnicians() async {
+    try {
+      final snap = await _techRef.where('isActive', isEqualTo: true).get();
+      return snap.docs.map((doc) => TechnicianModel.fromFirestore(doc)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Deletes a technician from the roster.
+  Future<void> deleteTechnician(String id) async {
+    await _techRef.doc(id).delete();
+  }
+
+  /// Live real-time stream of active technician count.
+  Stream<int> streamActiveCount() {
+    return _techRef
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snap) => snap.docs.length);
+  }
+
   /// Counts active technicians.
   Future<int> getActiveTechnicianCount() async {
     try {

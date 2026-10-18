@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../models/booking_config_model.dart';
 import '../../models/technician_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/request_providers.dart';
+import '../../providers/settings_providers.dart';
 import '../../providers/technician_providers.dart';
 import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
@@ -31,11 +33,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   // Doctors tab state
   String _doctorSearchQuery = '';
 
+  // Settings tab state
+  final _newCategoryController = TextEditingController();
+  final _supportPhoneController = TextEditingController();
+  final _pincodesController = TextEditingController();
+  final _maxDaysController = TextEditingController();
+  final _maxOpenRequestsController = TextEditingController();
+  bool _isSettingsInitialized = false;
+  bool _isSavingSettings = false;
+
+  @override
+  void dispose() {
+    _newCategoryController.dispose();
+    _supportPhoneController.dispose();
+    _pincodesController.dispose();
+    _maxDaysController.dispose();
+    _maxOpenRequestsController.dispose();
+    super.dispose();
+  }
+
   void _navigateToBookingsWithFilter(String status) {
     setState(() {
       _selectedTabIndex = 1;
       _bookingStatusFilter = status;
     });
+    ref.read(adminStatusFilterProvider.notifier).setFilter(status);
   }
 
   @override
@@ -187,11 +209,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Tickets pending > 2 hours, today\'s slots without technician, or stalled tickets > 48 hours.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF7F1D1D)),
                   ),
                   const SizedBox(height: 12),
                   needsAttentionAsync.when(
@@ -415,7 +432,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   // TAB 1: Bookings Dispatch Queue
   // ══════════════════════════════════════════════════════════════════
   Widget _buildBookingsTab() {
-    final statusFilter = _bookingStatusFilter;
+    final statusFilter = ref.watch(adminStatusFilterProvider);
     final requestsAsync = ref.watch(adminRequestsProvider);
 
     final filterOptions = [
@@ -634,26 +651,103 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     final doc = filtered[index];
                     return Card(
                       margin: EdgeInsets.zero,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryLight,
-                          child: const Icon(Icons.apartment_rounded, color: AppTheme.primaryColor),
-                        ),
-                        title: Text(
-                          doc.clinicName?.isNotEmpty == true ? doc.clinicName! : doc.displayName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          '${doc.displayName} • ${doc.phone}\n${doc.clinicAddress ?? 'Hyderabad'}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.phone_outlined, color: AppTheme.primaryColor),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Dialing ${doc.phone}')),
-                            );
-                          },
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        side: const BorderSide(color: AppTheme.cardBorderColor),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTheme.spacingMd),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 1. Clinic Name & Doctor
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryLight,
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                  ),
+                                  child: const Icon(Icons.apartment_rounded, color: AppTheme.primaryColor, size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        doc.clinicName?.isNotEmpty == true ? doc.clinicName! : 'Dental Clinic',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.person_outline_rounded, size: 14, color: AppTheme.textSecondary),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Dr. ${doc.displayName}',
+                                            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 10),
+
+                            // 2. Phone Number with Call Action
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_rounded, size: 16, color: AppTheme.primaryColor),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    doc.phone.isNotEmpty ? doc.phone : 'No mobile number recorded',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                                  ),
+                                ),
+                                if (doc.phone.isNotEmpty)
+                                  OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Dialing ${doc.phone}')),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.call_rounded, size: 14),
+                                    label: const Text('Call', style: TextStyle(fontSize: 12)),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+
+                            // 3. Address
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFFE11D48)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    doc.clinicAddress?.isNotEmpty == true ? doc.clinicAddress! : 'Hyderabad, Telangana',
+                                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -732,7 +826,39 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, size: 20),
+                          tooltip: 'Edit Technician',
                           onPressed: () => _showEditTechnicianDialog(tech),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.errorColor),
+                          tooltip: 'Delete Technician',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete Technician'),
+                                content: Text('Are you sure you want to remove ${tech.name} from the roster?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await ref.read(technicianRepositoryProvider).deleteTechnician(tech.id);
+                              ref.invalidate(techniciansProvider);
+                              ref.invalidate(activeTechniciansProvider);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('${tech.name} removed from roster.')),
+                                );
+                              }
+                            }
+                          },
                         ),
                         Switch(
                           value: tech.isActive,
@@ -898,43 +1024,362 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // TAB 4: Settings Tab
+  // TAB 4: Inline Equipment Categories & Platform Settings
   // ══════════════════════════════════════════════════════════════════
-  Widget _buildSettingsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: AppTheme.cardBorderColor),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'RioDent Operational Configuration',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Manage equipment categories, time slot windows, Hyderabad serviceable pincodes, and cancellation reasons without releasing a new app build.',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => context.push('/admin/settings'),
-                  icon: const Icon(Icons.tune_rounded),
-                  label: const Text('Open System Configuration Editor'),
-                ),
-              ],
-            ),
+  void _initSettingsFields(BookingConfigModel config) {
+    if (_isSettingsInitialized) return;
+    _supportPhoneController.text = config.supportPhone;
+    _pincodesController.text = config.serviceablePincodePrefixes.join(', ');
+    _maxDaysController.text = config.maxDaysAhead.toString();
+    _maxOpenRequestsController.text = config.maxOpenRequests.toString();
+    _isSettingsInitialized = true;
+  }
+
+  Future<void> _addCategory(BookingConfigModel config) async {
+    final label = _newCategoryController.text.trim();
+    if (label.isEmpty) return;
+    final code = label.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+
+    if (config.issueTypes.any((c) => c.code == code)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category with this code already exists.')),
+      );
+      return;
+    }
+
+    final updatedCategories = List<IssueTypeItem>.from(config.issueTypes)
+      ..add(IssueTypeItem(code: code, label: label, active: true));
+
+    final updatedConfig = config.copyWith(
+      issueTypes: updatedCategories,
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await ref.read(settingsRepositoryProvider).updateBookingConfig(updatedConfig);
+      ref.invalidate(bookingConfigProvider);
+      _newCategoryController.clear();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: AppTheme.successColor, content: Text('Added category "$label"')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add category: $e')));
+    }
+  }
+
+  Future<void> _toggleCategoryActive(BookingConfigModel config, int index, bool active) async {
+    final updatedCategories = List<IssueTypeItem>.from(config.issueTypes);
+    final current = updatedCategories[index];
+    updatedCategories[index] = IssueTypeItem(code: current.code, label: current.label, active: active);
+
+    final updatedConfig = config.copyWith(
+      issueTypes: updatedCategories,
+      updatedAt: DateTime.now(),
+    );
+
+    await ref.read(settingsRepositoryProvider).updateBookingConfig(updatedConfig);
+    ref.invalidate(bookingConfigProvider);
+  }
+
+  Future<void> _renameCategory(BookingConfigModel config, int index) async {
+    final cat = config.issueTypes[index];
+    final renameController = TextEditingController(text: cat.label);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Equipment Category'),
+        content: TextField(
+          controller: renameController,
+          decoration: const InputDecoration(labelText: 'Category Name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(renameController.text.trim()),
+            child: const Text('Save'),
           ),
         ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != cat.label) {
+      final updatedCategories = List<IssueTypeItem>.from(config.issueTypes);
+      updatedCategories[index] = IssueTypeItem(code: cat.code, label: newName, active: cat.active);
+
+      final updatedConfig = config.copyWith(
+        issueTypes: updatedCategories,
+        updatedAt: DateTime.now(),
+      );
+
+      await ref.read(settingsRepositoryProvider).updateBookingConfig(updatedConfig);
+      ref.invalidate(bookingConfigProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: AppTheme.successColor, content: Text('Renamed to "$newName"')),
+        );
+      }
+    }
+  }
+
+  Future<void> _savePlatformSettings(BookingConfigModel config) async {
+    setState(() => _isSavingSettings = true);
+    final prefixes = _pincodesController.text
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final maxDays = int.tryParse(_maxDaysController.text.trim()) ?? config.maxDaysAhead;
+    final maxOpen = int.tryParse(_maxOpenRequestsController.text.trim()) ?? config.maxOpenRequests;
+    final phone = _supportPhoneController.text.trim();
+
+    final updatedConfig = config.copyWith(
+      supportPhone: phone.isNotEmpty ? phone : config.supportPhone,
+      serviceablePincodePrefixes: prefixes.isNotEmpty ? prefixes : config.serviceablePincodePrefixes,
+      maxDaysAhead: maxDays,
+      maxOpenRequests: maxOpen,
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await ref.read(settingsRepositoryProvider).updateBookingConfig(updatedConfig);
+      ref.invalidate(bookingConfigProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppTheme.successColor,
+          content: Text('Settings saved successfully'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save settings: $e')));
+    } finally {
+      if (mounted) setState(() => _isSavingSettings = false);
+    }
+  }
+
+  Widget _buildSettingsTab() {
+    final configAsync = ref.watch(bookingConfigProvider);
+    final config = configAsync.value ?? BookingConfigModel.defaultConfig();
+    _initSettingsFields(config);
+
+    final activeCount = config.issueTypes.where((c) => c.active).length;
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(bookingConfigProvider),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Section 1: Equipment Categories ──────────────────────────
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: AppTheme.cardBorderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.build_circle_rounded, color: AppTheme.primaryColor, size: 22),
+                          SizedBox(width: 8),
+                          Text(
+                            'Equipment Categories',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: Text(
+                          '$activeCount Active',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Add, rename, and toggle dental equipment categories available for doctor bookings.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Add New Category Input with Suffix Action
+                  TextField(
+                    controller: _newCategoryController,
+                    decoration: InputDecoration(
+                      labelText: 'New Equipment Category *',
+                      hintText: 'e.g. Autoclaves, X-Ray Units',
+                      prefixIcon: const Icon(Icons.add_box_rounded),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.add_circle_rounded, color: AppTheme.primaryColor),
+                        tooltip: 'Add Category',
+                        onPressed: () => _addCategory(config),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    onSubmitted: (_) => _addCategory(config),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+
+                  // Categories List
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: config.issueTypes.length,
+                    separatorBuilder: (_, __) => const Divider(height: 8),
+                    itemBuilder: (context, index) {
+                      final cat = config.issueTypes[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: cat.active ? AppTheme.primaryLight : const Color(0xFFF3F4F6),
+                          child: Icon(
+                            Icons.handyman_rounded,
+                            size: 16,
+                            color: cat.active ? AppTheme.primaryColor : AppTheme.textHint,
+                          ),
+                        ),
+                        title: Text(
+                          cat.label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            decoration: cat.active ? null : TextDecoration.lineThrough,
+                            color: cat.active ? AppTheme.textPrimary : AppTheme.textHint,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Code: ${cat.code}',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              tooltip: 'Rename',
+                              onPressed: () => _renameCategory(config, index),
+                            ),
+                            Switch(
+                              value: cat.active,
+                              onChanged: (val) => _toggleCategoryActive(config, index, val),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Section 2: Platform Configuration ─────────────────────────
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                border: Border.all(color: AppTheme.cardBorderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.tune_rounded, color: AppTheme.primaryColor, size: 22),
+                      SizedBox(width: 8),
+                      Text(
+                        'Service & Operational Policies',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Configure customer support contact, Hyderabad serviceable areas, and doctor booking constraints.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _supportPhoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Operations Support Phone',
+                      prefixIcon: Icon(Icons.phone_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: _pincodesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Serviceable Pincode Prefixes (comma separated)',
+                      prefixIcon: Icon(Icons.pin_drop_rounded),
+                      hintText: 'e.g. 500, 501',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: _maxDaysController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Max Days Ahead for Booking',
+                      prefixIcon: Icon(Icons.calendar_today_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: _maxOpenRequestsController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Max Open Requests Per Doctor',
+                      prefixIcon: Icon(Icons.assignment_late_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: _isSavingSettings ? null : () => _savePlatformSettings(config),
+                    icon: _isSavingSettings
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save_rounded),
+                    label: Text(_isSavingSettings ? 'Saving...' : 'Save Configuration'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }

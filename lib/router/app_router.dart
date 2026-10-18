@@ -105,8 +105,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'submitted',
             builder: (context, state) {
-              final requestId = state.extra as String? ?? '';
-              return RequestSubmittedScreen(requestId: requestId);
+              return RequestSubmittedScreen(requestId: state.extra ?? '');
             },
           ),
           GoRoute(

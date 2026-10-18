@@ -20,8 +20,8 @@ final registeredDentistsProvider = StreamProvider<List<UserModel>>((ref) {
   return userRepo.streamRecentDentists(limit: 50);
 });
 
-/// Future provider for total count of registered dentists using Firestore aggregate count().
-final dentistCountProvider = FutureProvider<int>((ref) async {
+/// Real-time stream provider for total count of registered dentists.
+final dentistCountProvider = StreamProvider<int>((ref) {
   final userRepo = ref.watch(userRepositoryProvider);
-  return await userRepo.getDentistCount();
+  return userRepo.streamDentistCount();
 });
