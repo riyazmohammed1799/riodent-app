@@ -2,7 +2,7 @@
 
 **Document ID:** `QA-DEFECTS-2026-V1`  
 **Date:** October 19, 2026  
-**Defect Summary:** 9 Defects Logged | **9 Resolved (100% Remediation Rate)** | **0 Open Critical / Blocker Defects**  
+**Defect Summary:** 10 Defects Logged | **10 Resolved (100% Remediation Rate)** | **0 Open Critical / Blocker Defects**  
 
 ---
 
@@ -19,6 +19,7 @@
 | **`DEF-007`** | **P1 (High)** | Build / Environment | `Environment.prod` returned DEV project ID `equip-services-dev` | Stale fallback in `environment.dart` pointing to DEV | **RESOLVED** | **`PASS`** |
 | **`DEF-008`** | **P1 (High)** | Build / Android | Release App Bundle signed with Android Debug certificate | `build.gradle.kts` release buildType used `signingConfigs.debug` | **RESOLVED** | **`PASS`** |
 | **`DEF-009`** | **P3 (Low)** | QA / Unit Tests | `test/environment_test.dart` asserted DEV project for PROD | Unit test expected legacy hardcoded DEV ID | **RESOLVED** | **`PASS`** |
+| **`DEF-010`** | **P3 (Low)** | Static Analysis / Admin | `use_build_context_synchronously` warnings across async gaps | BuildContext shadowed in StatefulBuilder & unmounted check | **RESOLVED** | **`PASS`** |
 
 ---
 
@@ -74,3 +75,11 @@
   2. Registered SHA-1 and SHA-256 certificate fingerprints in `riodent-prod`.
   3. Created `lib/firebase_options_prod.dart` and configured `key.properties`.
 - **Verification:** Compiled `riodent-release-prod.aab` (58.3 MB) verified signed with RioDent X.509 upload certificate.
+ 
+### DEF-010: Static Analysis Async Context Invalidation
+- **Severity:** P3 (Low)
+- **Component:** `lib/screens/admin/dashboard_screen.dart`
+- **Reproduction:** Running `flutter analyze` reported 5 `use_build_context_synchronously` warnings where `context` was used across async gaps inside StatefulBuilder dialogs.
+- **Root Cause:** StatefulBuilder shadowed `State.context` with its own `context` parameter, and unmounted checks evaluated `context.mounted` rather than `State.mounted`.
+- **Remediation Applied:** Renamed dialog builder parameter to `dialogContext` and guarded async `ScaffoldMessenger` invocations with `if (mounted)`.
+- **Verification:** `flutter analyze` completed with `No issues found! (0 errors, 0 warnings)`.
