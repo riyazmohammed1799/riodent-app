@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Hexagonal Shield / Badge Base -->
+    <path
+        android:fillColor="#0F2438"
+        android:pathData="M48,6 L82,24 L82,62 L48,88 L14,62 L14,24 Z" />
+    <path
+        android:strokeColor="#0284C7"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M48,9 L80,26 L80,60 L48,85 L16,60 L16,26 Z" />
+
+    <!-- Technician Engineering Gear -->
+    <path
+        android:fillColor="#0369A1"
+        android:pathData="M45,28 L51,28 L52,32 C53.5,32.5 55,33.2 56.5,34.2 L60.5,31.5 L64.5,35.5 L61.8,39.5 C62.8,41 63.5,42.5 64,44 L68,45 L68,51 L64,52 C63.5,53.5 62.8,55 61.8,56.5 L64.5,60.5 L60.5,64.5 L56.5,61.8 C55,62.8 53.5,63.5 52,64 L51,68 L45,68 L44,64 C42.5,63.5 41,62.8 39.5,61.8 L35.5,64.5 L31.5,60.5 L34.2,56.5 C33.2,55 32.5,53.5 32,52 L28,51 L28,45 L32,44 C32.5,42.5 33.2,41 34.2,39.5 L31.5,35.5 L35.5,31.5 L39.5,34.2 C41,33.2 42.5,32.5 44,32 Z" />
+
+    <!-- Gear Cutout Inner -->
+    <path
+        android:fillColor="#0F2438"
+        android:pathData="M48,48m-14,0a14,14 0 1,0 28,0a14,14 0 1,0 -28,0" />
+
+    <!-- Technician Wrench (Metallic Silver) -->
+    <path
+        android:fillColor="#F1F5F9"
+        android:pathData="M35,30 C33,28 29,29 27,31 C25,33 26,37 28,39 L42,53 L46,49 L32,35 L34,33 L38,37 L41,34 Z" />
+    <path
+        android:fillColor="#F1F5F9"
+        android:pathData="M43,54 L62,73 C64,75 67,75 69,73 C71,71 71,68 69,66 L50,47 Z" />
+
+    <!-- Precision Handpiece / Tool (Gold Amber) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M61,30 C63,28 67,29 69,31 C71,33 70,37 68,39 L54,53 L50,49 L64,35 L62,33 L58,37 L55,34 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M53,54 L34,73 C32,75 29,75 27,73 C25,71 25,68 27,66 L46,47 Z" />
+
+    <!-- Central Precision Core Indicator -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,48m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M48,48m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0" />
+</vector>

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1085269643387",
+    "project_id": "equip-services-dev",
+    "storage_bucket": "equip-services-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085269643387:android:57beff18a7a651941ad2de",
+        "android_client_info": {
+          "package_name": "com.riodent.riodent"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085269643387-igg9srs61u1m15cv415j8vlapaa9nigg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6K45TORtk69fkeViGtdd6A6BQidhyNGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085269643387-igg9srs61u1m15cv415j8vlapaa9nigg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

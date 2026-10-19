@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "riyaz.mohammed1799@gmail.com" || 
+         request.auth.token.admin == true);
+    }
+
+    // Repair issue images
+    // Doctors can upload/access images belonging to their own requests.
+    // Admin can access all request images.
+    // Other users cannot access another doctor's images.
+    match /repair_images/{doctorUid}/{allPaths=**} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == doctorUid);
+      allow write: if isAuthenticated() && request.auth.uid == doctorUid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

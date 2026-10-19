@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Predefined Admin Gmail check
+      return isAuthenticated() && 
+        (request.auth.token.email == "riyaz.mohammed1799@gmail.com" || 
+         request.auth.token.admin == true);
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    // Logged-in user can read/update their own profile. Admin can access all.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && (request.auth.uid == userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Doctor Profiles Collection
+    // Doctors can create, read, and update their own profile.
+    // Admin can read all doctor profiles.
+    // Doctors must not be able to read another doctor's profile.
+    match /doctorProfiles/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Repair Requests Collection
+    // Doctors can create, read, and update/cancel their own requests.
+    // Doctors must not be able to read another doctor's requests.
+    // Admin can read and access all repair requests.
+    match /repairRequests/{requestId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.doctorUid == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.doctorUid == request.auth.uid;
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.doctorUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+  }
+}

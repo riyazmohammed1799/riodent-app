@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Heavy Industrial Gear / Cog (Technician Repair Symbol) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M51,26 L57,26 L58,31 C60,31.5 62,32.3 64,33.5 L68.5,30.5 L73,35 L70,39.5 C71.2,41.5 72,43.5 72.5,45.5 L77.5,46.5 L77.5,52.5 L72.5,53.5 C72,55.5 71.2,57.5 70,59.5 L73,64 L68.5,68.5 L64,65.5 C62,66.7 60,67.5 58,68 L57,73 L51,73 L50,68 C48,67.5 46,66.7 44,65.5 L39.5,68.5 L35,64 L38,59.5 C36.8,57.5 36,55.5 35.5,53.5 L30.5,52.5 L30.5,46.5 L35.5,45.5 C36,43.5 36.8,41.5 38,39.5 L35,35 L39.5,30.5 L44,33.5 C46,32.3 48,31.5 50,31 Z" />
+
+    <!-- Gear Inner Ring (Steel Dark Cutout) -->
+    <path
+        android:fillColor="#0B1A28"
+        android:pathData="M54,54m-18,0a18,18 0 1,0 36,0a18,18 0 1,0 -36,0" />
+
+    <!-- Crossed Service Wrench (Left-to-Right diagonal) -->
+    <path
+        android:fillColor="#F1F5F9"
+        android:pathData="M40,32 C38,30 34,31 32,33 C30,35 31,39 33,41 L47,55 L51,51 L37,37 L39,35 L43,39 L46,36 Z" />
+    <path
+        android:fillColor="#F1F5F9"
+        android:pathData="M48,56 L69,77 C71,79 74,79 76,77 C78,75 78,72 76,70 L55,49 Z" />
+
+    <!-- Crossed Precision Dental Instrument / Handpiece (Right-to-Left diagonal) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M68,32 C70,30 74,31 76,33 C78,35 77,39 75,41 L61,55 L57,51 L71,37 L69,35 L65,39 L62,36 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M60,56 L39,77 C37,79 34,79 32,77 C30,75 30,72 32,70 L53,49 Z" />
+
+    <!-- Center Precision Service Core / Hub -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0" />
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M54,54m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" />
+</vector>

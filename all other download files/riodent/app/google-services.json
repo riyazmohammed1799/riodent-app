@@ -1,0 +1,34 @@
+{
+  "project_info": {
+    "project_number": "723440210988",
+    "project_id": "riodent-service",
+    "storage_bucket": "riodent-service.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723440210988:android:a8947fbc12de3490",
+        "android_client_info": {
+          "package_name": "com.aistudio.riodent.kqvw"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "723440210988-default.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-DummyApiKeyRioDentApplet2026Hyderabad"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "RioDent",
+  "description": "Dental equipment repair request and technician lead management application for clinics and doctors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
