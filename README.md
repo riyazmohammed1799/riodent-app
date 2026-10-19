@@ -222,21 +222,21 @@ flutter test
 
 ---
 
-## 🔑 Demo & Testing Credentials
+## 🔑 Designated Admin & Testing Access
 
-| Role | 1-Click Access | Credentials | Scope |
+| Role | Access Method | Credentials | Scope |
 | :--- | :--- | :--- | :--- |
-| **Dentist / Clinic** | *"Quick Demo: Dr. Priya Sharma"* | `dentist.demo@riodent.com`<br>`RioDentDemoPassword2026!` | Clinic: *Smile Care Dental Clinic*<br>Address: *Road No 36, Jubilee Hills, Hyderabad* |
-| **Admin Console** | *"1-Click Sign In as Admin"* | `admin@riodent.com`<br>`RioDentAdmin2026!` | Role: `admin`<br>Full dispatch, roster, and settings access |
+| **Designated System Admin** | Enter email on Login Screen &rarr; tap *"Sign In to Admin Portal"* | `riyaz.mohammed1799@gmail.com` | **Full Administrative Privileges**<br>Live operations dashboard, technician roster dispatch, inline category administration, doctor directory, real-time revenue analytics. |
+| **Dentist / Clinic** | Standard Doctor Login or Sign Up | Any verified doctor email (e.g., `doctor@clinic.com`) | **Clinic Operations**<br>Request technician, track live status, phone technician, cancel with reason, confirm completion & payment. |
 
 ---
 
 ## 💻 Local Development & Build Commands
 
 ### Prerequisites
-* Flutter SDK (3.24+ recommended, tested with 3.47.5)
-* Dart SDK (3.5+)
-* Git
+* Flutter SDK (Version 3.47.5 / Dart 3.13.4 at `C:\flutter\bin\flutter.bat`)
+* Java JDK 17
+* Firebase CLI (`npm install -g firebase-tools`)
 
 ### Commands
 
@@ -245,7 +245,7 @@ flutter test
    flutter pub get
    ```
 
-2. **Run Tests**:
+2. **Run All Tests**:
    ```bash
    flutter test
    ```
@@ -259,30 +259,42 @@ flutter test
    * **DEV**: `flutter run -d chrome`
    * **PROD**: `flutter run -d chrome --dart-define=ENV=prod`
 
-5. **Build & Deploy Web App (Firebase Hosting)**:
-   ```bash
-   flutter build web --release
-   npx firebase-tools deploy --only hosting --project equip-services-dev
-   ```
+5. **Deploy Firestore Rules & Indexes**:
+   * **DEV**: `firebase deploy --only firestore:rules,firestore:indexes --project equip-services-dev`
+   * **PROD**: `firebase deploy --only firestore:rules,firestore:indexes --project riodent-prod`
 
-6. **Deploy Firestore Rules & Indexes**:
-   ```bash
-   npx firebase-tools deploy --only firestore:rules,firestore:indexes --project equip-services-dev
-   ```
-
-7. **Build Android Release Artifacts**:
-   * **Release APK**: `flutter build apk --release`
-   * **Google Play App Bundle (AAB)**: `flutter build appbundle --release`
+6. **Build Android Release Artifacts**:
+   * **Production Google Play App Bundle (AAB)**:
+     ```bash
+     flutter build appbundle --release --dart-define=ENV=prod --no-tree-shake-icons
+     ```
+     *(Signed with official release upload keystore -> `riodent-release-prod.aab`)*
+   * **Development Testing APK**:
+     ```bash
+     flutter build apk --release
+     ```
 
 ---
 
 ## 📋 Google Play Store Publishing Checklist
 
 * [x] **Application ID**: `com.riodent.riodent`
+* [x] **Version**: `1.0.0+2` (`versionCode = 2`, `versionName = "1.0.0"`)
+* [x] **Compile SDK / Target SDK**: Android 16 (API 36) | **Min SDK**: Android 7.0 (API 24)
+* [x] **Release Signing**: Signed with official X.509 RioDent upload certificate
+* [x] **Production Backend**: Dedicated `riodent-prod` in `asia-south1 (Mumbai)`
 * [x] **App Icon**: `512x512` 32-bit PNG (`assets/playstore/app_icon_512x512.png`)
-* [x] **Feature Graphic**: `1024x500` and `1025x500` PNG (`assets/playstore/feature_graphic_1024x500.png`)
+* [x] **Feature Graphics**: `1024x500` and `1025x500` PNG (`assets/playstore/feature_graphic_1024x500.png`)
 * [x] **Phone Screenshots**: High-res 9:16 screenshots (`assets/playstore/screenshot_*.png`)
 * [x] **Hosted Privacy Policy**: Live at `https://equip-services-dev.web.app/privacy.html`
 * [x] **Hosted Account Deletion Page**: Live at `https://equip-services-dev.web.app/delete-account.html`
-* [x] **Target SDK**: Android 14+ (API 34)
-* [x] **Zero Layout Overflows**: Verified across all 3 standard viewports (320px, 360px, 412px)
+* [x] **Zero Layout Overflows**: 18/18 Viewport tests passed (320px, 360px, 412px)
+* [x] **FCM Push Notifications**: Integrated with `@pragma('vm:entry-point')` background isolate handler
+
+---
+
+## 📚 Complete Project Documentation
+
+* [**CLIENT_PRESENTATION_AND_END_TO_END_SPEC.md**](CLIENT_PRESENTATION_AND_END_TO_END_SPEC.md) — Slide-by-slide executive walkthrough for stakeholders and clients detailing every button, screen, workflow, Mermaid diagrams, and positive/negative test cases.
+* [**MASTER_CONVERSATION_AND_RELEASE_LOG.md**](MASTER_CONVERSATION_AND_RELEASE_LOG.md) — Comprehensive technical log of every user chat, architectural decision, and audit result.
+* [**README_TESTING.md**](README_TESTING.md) — Detailed QA engineer testing guide and emulator procedures.
