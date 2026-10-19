@@ -28,7 +28,6 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
   late String _selectedCategoryCode;
   late TextEditingController _descController;
   late DateTime _selectedDate;
-  TimeSlotItem? _selectedSlot;
   bool _isSaving = false;
   String? _errorMessage;
 
@@ -41,10 +40,6 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
     // Initial date
     final parsedDate = DateTime.tryParse(widget.request.slotDate);
     _selectedDate = parsedDate ?? widget.request.slotStart;
-
-    // Initial slot
-    final found = widget.config.slots.where((s) => s.key == widget.request.slotKey);
-    _selectedSlot = found.isNotEmpty ? found.first : (widget.config.slots.isNotEmpty ? widget.config.slots.first : null);
   }
 
   @override
@@ -63,23 +58,6 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (_selectedSlot == null) {
-      setState(() => _errorMessage = 'Please select a visit time slot.');
-      return;
-    }
-
-    final slotStart = _selectedSlot!.getStartDateTime(_selectedDate);
-    final isBookable = BookingConfigModel.isSlotBookable(
-      slotStart: slotStart,
-      now: DateTime.now(),
-      minLeadMinutes: widget.config.minLeadMinutes,
-    );
-
-    if (!isBookable) {
-      setState(() => _errorMessage = 'Selected slot is in the past or starts too soon (minimum ${widget.config.minLeadMinutes} mins lead time).');
-      return;
-    }
 
     setState(() {
       _isSaving = true;
@@ -101,8 +79,8 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
         issueLabel: cat.label,
         issueDescription: _descController.text.trim(),
         slotDate: dateStr,
-        slotKey: _selectedSlot!.key,
-        slotStart: slotStart,
+        slotKey: 'full_day',
+        slotStart: _selectedDate,
       );
 
       ref.invalidate(requestDetailProvider(widget.request.id));
@@ -212,36 +190,26 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
                     },
                   ),
                 ),
-                const SizedBox(height: 14),
-
-                // 4. Preferred Slot
-                const Text('Preferred Time Slot *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: widget.config.slots.map((slot) {
-                    final slotStart = slot.getStartDateTime(_selectedDate);
-                    final isBookable = BookingConfigModel.isSlotBookable(
-                      slotStart: slotStart,
-                      now: DateTime.now(),
-                      minLeadMinutes: widget.config.minLeadMinutes,
-                    );
-                    final isSelected = _selectedSlot?.key == slot.key;
-
-                    return ChoiceChip(
-                      label: Text(slot.label, style: const TextStyle(fontSize: 12)),
-                      selected: isSelected,
-                      onSelected: isBookable
-                          ? (selected) {
-                              setState(() {
-                                _selectedSlot = selected ? slot : null;
-                                _errorMessage = null;
-                              });
-                            }
-                          : null,
-                    );
-                  }).toList(),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F9FF),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    border: Border.all(color: const Color(0xFFBAE6FD)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.access_time_filled_rounded, size: 16, color: Color(0xFF0284C7)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '24-Hour Commitment: Visit is coordinated on the selected date.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF0369A1)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
                 if (_errorMessage != null) ...[

@@ -226,13 +226,13 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Visit slot
+              // Visit date
               Row(
                 children: [
-                  const Icon(Icons.schedule_rounded, size: 14, color: AppTheme.textSecondary),
+                  const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    'Slot: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('MMM dd').format(req.slotStart)} (${DateFormat('h:mm a').format(req.slotStart)})',
+                    'Preferred Date: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('MMM dd, yyyy').format(req.slotStart)}',
                     style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                   ),
                 ],

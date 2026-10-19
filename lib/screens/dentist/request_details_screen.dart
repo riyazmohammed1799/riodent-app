@@ -595,7 +595,7 @@ class RequestDetailsScreen extends ConsumerWidget {
                   children: [
                     _buildRow('Category', req.issueLabel),
                     _buildRow('Description', req.issueDescription),
-                    _buildRow('Preferred Slot', '${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)} (${DateFormat('h:mm a').format(req.slotStart)})'),
+                    _buildRow('Preferred Date', req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)),
                   ],
                 ),
 

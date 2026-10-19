@@ -2,7 +2,7 @@
 
 **Document ID:** `QA-DEFECTS-2026-V1`  
 **Date:** October 19, 2026  
-**Defect Summary:** 10 Defects Logged | **10 Resolved (100% Remediation Rate)** | **0 Open Critical / Blocker Defects**  
+**Defect Summary:** 11 Defects Logged | **11 Resolved (100% Remediation Rate)** | **0 Open Critical / Blocker Defects**  
 
 ---
 
@@ -20,6 +20,7 @@
 | **`DEF-008`** | **P1 (High)** | Build / Android | Release App Bundle signed with Android Debug certificate | `build.gradle.kts` release buildType used `signingConfigs.debug` | **RESOLVED** | **`PASS`** |
 | **`DEF-009`** | **P3 (Low)** | QA / Unit Tests | `test/environment_test.dart` asserted DEV project for PROD | Unit test expected legacy hardcoded DEV ID | **RESOLVED** | **`PASS`** |
 | **`DEF-010`** | **P3 (Low)** | Static Analysis / Admin | `use_build_context_synchronously` warnings across async gaps | BuildContext shadowed in StatefulBuilder & unmounted check | **RESOLVED** | **`PASS`** |
+| **`DEF-011`** | **P2 (Med)** | Doctor / Edit Dialog | Legacy time slot chips displayed during request edit | Edit dialog retained deprecated slot chips instead of date-only commitment | **RESOLVED** | **`PASS`** |
 
 ---
 
@@ -83,3 +84,13 @@
 - **Root Cause:** StatefulBuilder shadowed `State.context` with its own `context` parameter, and unmounted checks evaluated `context.mounted` rather than `State.mounted`.
 - **Remediation Applied:** Renamed dialog builder parameter to `dialogContext` and guarded async `ScaffoldMessenger` invocations with `if (mounted)`.
 - **Verification:** `flutter analyze` completed with `No issues found! (0 errors, 0 warnings)`.
+
+### DEF-011: Legacy Time Slot Selection in Doctor Edit Dialog
+- **Severity:** P2 (Medium)
+- **Component:** `lib/screens/dentist/edit_request_dialog.dart`, `request_details_screen.dart`, `my_requests_screen.dart`, `admin_request_details_screen.dart`, `dashboard_screen.dart`
+- **Reproduction:** When a doctor clicked "Edit" on a service request, the dialog displayed "Preferred Time Slot *" and slot selection chips, which had previously been removed from the booking flow in favor of date-only selection.
+- **Root Cause:** `EditRequestDialog` retained legacy `TimeSlotItem` state, lead-time validation, and slot selection chips from early prototype; detail cards also formatted `(12:00 AM)`.
+- **Remediation Applied:** 
+  1. Removed time slot chips, slot validation, and `_selectedSlot` from `EditRequestDialog`; replaced with 24-Hour Service Commitment notice matching booking flow.
+  2. Updated doctor and admin detail screens to display `Preferred Date: <Date>` without artificial time labels.
+- **Verification:** Dialog cleanly displays Equipment Category, Problem Description, and Preferred Visit Date. `flutter analyze` and `flutter test` pass with 100% success.

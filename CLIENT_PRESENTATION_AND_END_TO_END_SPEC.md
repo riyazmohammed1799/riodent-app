@@ -191,7 +191,7 @@ Every screen and interactive control in the Doctor Portal has been engineered fo
 | **Dynamic Status Timeline** | Vertical step indicator (Booked &rarr; Assigned &rarr; In Progress &rarr; Completed) | **Live dynamic status**: Real-time updates as admin assigns technician and technician marks progress. | Timeline updates automatically via real-time Firestore stream. |
 | **Assigned Technician Card** | Profile tile with technician name, badge, and photo | Displays technician credentials once assigned by operations. | Displays *"Awaiting technician dispatch"* banner when status is `NEW`. |
 | **"Call Technician" Button** | Green pill button with phone icon | One-tap direct call to assigned technician's phone number. | Only active when technician is assigned. |
-| **"Edit Booking Details" Button** | Text button with pencil icon | Allows fixing wrong time slot or problem description while status is `NEW` or `ASSIGNED`. | **Disabled once technician is `IN_PROGRESS` or `COMPLETED`.** |
+| **"Edit Booking Details" Button** | Text button with pencil icon | Allows fixing wrong equipment category, preferred visit date, or problem description while status is `NEW` or `ASSIGNED` (time slots removed; visit coordinated under 24-hour commitment). | **Disabled once technician is `IN_PROGRESS` or `COMPLETED`.** |
 | **"Cancel Request" Button** | Red outlined button with trash icon | Prompts doctor for cancellation reason (e.g., *"Problem resolved itself"*); sets status to `CANCELLED`; returns doctor to Home. | **Blocked by Security Rules if technician is already `IN_PROGRESS`.** |
 | **"Confirm Payment & Close Ticket" CTA** | Green elevated button with Rupee symbol | **Doctor completion flow**: Doctor confirms repair is complete, enters agreed amount paid in ₹, and closes ticket. | **Leading Zero Fix**: Fixed numeric controller so typing `1000` displays `1000`, not `01000`. |
 | **Rating & Feedback Stars** | 5-star interactive rating bar | Allows doctor to submit 1-5 star service rating upon completion. | Stores rating in ticket document for technician quality scoring. |
@@ -373,7 +373,7 @@ Every feature in RioDent has been subjected to rigorous automated and manual pos
 | **`LFC-POS-01`** | Admin assigns technician | Selects active technician & taps Assign | Status becomes `ASSIGNED`; audit logged | Status updated to `ASSIGNED` | **`PASS`** |
 | **`LFC-POS-02`** | Doctor cancels `NEW` ticket | Reason: "Problem resolved"; taps Cancel | Status becomes `CANCELLED`; navigates Home | Status `CANCELLED`; at Home | **`PASS`** |
 | **`LFC-NEG-01`** | Doctor attempts cancel `IN_PROGRESS` | Ticket in progress; doctor taps Cancel | Cancel button hidden; rule denies write | Cancel blocked | **`PASS`** |
-| **`LFC-POS-03`** | Doctor edits time on `NEW` ticket | Changes slot date to tomorrow | Ticket slot updated; status remains `NEW` | Slot updated cleanly | **`PASS`** |
+| **`LFC-POS-03`** | Doctor edits date on `NEW` ticket | Changes visit date to tomorrow | Ticket date updated; status remains `NEW` | Date updated cleanly | **`PASS`** |
 | **`LFC-NEG-02`** | Doctor attempts edit on `COMPLETED` | Ticket completed; edit attempted | Edit button hidden; rule denies write | Edit blocked | **`PASS`** |
 
 ---

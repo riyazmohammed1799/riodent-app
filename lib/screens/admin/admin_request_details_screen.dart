@@ -446,7 +446,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Slot: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)} (${DateFormat('h:mm a').format(req.slotStart)})',
+                              'Date: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)}',
                               style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                             ),
                           ],
