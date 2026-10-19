@@ -16,11 +16,15 @@ import '../screens/dentist/request_submitted_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/splash/splash_screen.dart';
 
+/// Global navigation key used for deep linking, FCM push notification routing, and dialogs.
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Provider exposing the application router with declarative role-based routing.
 final routerProvider = Provider<GoRouter>((ref) {
   final authNotifier = _RouterRefreshNotifier(ref);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: authNotifier,
     redirect: (context, state) {
@@ -51,11 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 4. Role-based routing: Admin vs Doctor
       if (isAdmin) {
-        // Admin: only allowed on /admin and admin subroutes
+        // Admin: default landing is /admin
         final isRestrictedForAdmin = loc == '/splash' ||
             loc == '/login' ||
-            loc == '/admin/login' ||
-            loc.startsWith('/dentist');
+            loc == '/admin/login';
         if (isRestrictedForAdmin) {
           return '/admin';
         }

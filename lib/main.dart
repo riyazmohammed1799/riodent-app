@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'config/environment.dart';
+import 'services/fcm_service.dart';
 
 /// Application entry point.
 ///
@@ -20,6 +21,30 @@ void main() async {
   );
 
   debugPrint('🚀 RioDent started in [${env.label}] mode -> Project: ${env.firebaseProjectId}');
+
+  // Initialize FCM push notification service (permissions, background handler, console campaigns)
+  await FcmService.initialize();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('🚨 UNCAUGHT FLUTTER ERROR: ${details.exceptionAsString()}\n${details.stack}');
+  };
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Render Error Caught'),
+        backgroundColor: Colors.red.shade800,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'ERROR: ${details.exceptionAsString()}\n\nSTACK TRACE:\n${details.stack}',
+          style: const TextStyle(color: Colors.red, fontSize: 13, fontFamily: 'monospace'),
+        ),
+      ),
+    );
+  };
 
   runApp(
     const ProviderScope(

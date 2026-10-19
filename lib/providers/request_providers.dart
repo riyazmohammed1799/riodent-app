@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/riodent_share_model.dart';
 import '../models/technician_request_model.dart';
 import '../repositories/request_repository.dart';
 import 'auth_providers.dart';
@@ -84,4 +85,16 @@ final adminStatusCountProvider = StreamProvider.family<int, String>((ref, status
 final adminTotalRevenueProvider = StreamProvider<double>((ref) {
   final repo = ref.watch(requestRepositoryProvider);
   return repo.streamTotalAmountPaid();
+});
+
+/// Live real-time stream of RioDent Share financial accounting (10% of doctor payments).
+final riodentShareSummaryProvider = StreamProvider<RioDentShareSummary>((ref) {
+  final repo = ref.watch(requestRepositoryProvider);
+  return repo.streamRioDentShareSummary();
+});
+
+/// Live real-time stream of RioDent Share settlement batches.
+final riodentSettlementsProvider = StreamProvider<List<RioDentSettlementModel>>((ref) {
+  final repo = ref.watch(requestRepositoryProvider);
+  return repo.streamSettlements();
 });

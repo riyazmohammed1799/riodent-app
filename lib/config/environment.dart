@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import '../firebase_options.dart';
+import '../firebase_options_prod.dart';
 
 /// Application environment configuration.
 ///
@@ -7,7 +8,7 @@ import '../firebase_options.dart';
 /// ```
 /// flutter run                         # Defaults to DEV (equip-services-dev)
 /// flutter run --dart-define=ENV=dev   # Explicit DEV (equip-services-dev)
-/// flutter run --dart-define=ENV=prod  # Production (PROD)
+/// flutter run --dart-define=ENV=prod  # Production (riodent-prod)
 /// ```
 enum Environment {
   dev,
@@ -39,8 +40,7 @@ enum Environment {
       case Environment.dev:
         return 'equip-services-dev';
       case Environment.prod:
-        // Future production Firebase project; defaults to equip-services-dev
-        return 'equip-services-dev';
+        return 'riodent-prod';
     }
   }
 
@@ -48,8 +48,9 @@ enum Environment {
   FirebaseOptions get firebaseOptions {
     switch (this) {
       case Environment.dev:
-      case Environment.prod:
         return DefaultFirebaseOptions.currentPlatform;
+      case Environment.prod:
+        return ProdFirebaseOptions.currentPlatform;
     }
   }
 

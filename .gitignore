@@ -52,6 +52,8 @@ app.*.map.json
 *.keystore
 *.jks
 key.properties
+*.apk
+*.aab
 *.env
 *.env.*
 *service-account*.json

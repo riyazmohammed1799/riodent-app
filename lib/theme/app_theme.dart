@@ -107,7 +107,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: textOnPrimary,
-          minimumSize: const Size(double.infinity, 50),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
@@ -125,7 +125,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
-          minimumSize: const Size(double.infinity, 50),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
@@ -347,7 +347,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: darkPrimary,
           foregroundColor: const Color(0xFF0F172A),
-          minimumSize: const Size(double.infinity, 50),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
@@ -365,7 +365,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: darkPrimary,
-          minimumSize: const Size(double.infinity, 50),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
           ),
@@ -591,18 +591,28 @@ class AppTheme {
   }
 
   /// Returns a human-readable label for a given request status string.
-  static String getStatusLabel(String status) {
+  /// Standardized to Pending, Assigned, Completed, and Cancelled per Section 4 & 5.
+  static String getStatusLabel(String status, [String? cancelledBy]) {
     switch (status.toUpperCase()) {
       case 'NEW':
-        return 'Pending Dispatch';
+      case 'PENDING':
+        return 'Pending';
       case 'ASSIGNED':
-        return 'Technician Assigned';
       case 'IN_PROGRESS':
-        return 'Active / In Progress';
+        return 'Assigned';
       case 'COMPLETED':
         return 'Completed';
       case 'CANCELLED':
-        return 'Service Denied / Cancelled';
+        if (cancelledBy != null && cancelledBy.isNotEmpty) {
+          final c = cancelledBy.toLowerCase().trim();
+          if (c == 'dentist' || c == 'doctor') {
+            return 'Cancelled by Doctor';
+          }
+          if (c == 'admin') {
+            return 'Cancelled by Admin';
+          }
+        }
+        return 'Cancelled';
       default:
         return status;
     }

@@ -39,6 +39,8 @@ class UserModel {
     bool isAdmin = false,
   }) {
     final data = doc.data() ?? {};
+    final email = (data['email'] as String?)?.toLowerCase().trim();
+    final bool resolvedAdmin = isAdmin || email == 'riyaz.mohammed1799@gmail.com';
     return UserModel(
       uid: doc.id,
       displayName: data['displayName'] as String? ?? '',
@@ -48,7 +50,7 @@ class UserModel {
       clinicAddress: data['clinicAddress'] as String? ?? data['address'] as String?,
       clinicLatitude: (data['clinicLatitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble(),
       clinicLongitude: (data['clinicLongitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble(),
-      isAdmin: isAdmin,
+      isAdmin: resolvedAdmin,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

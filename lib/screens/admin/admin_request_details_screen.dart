@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/booking_config_model.dart';
 import '../../models/technician_model.dart';
 import '../../models/technician_request_model.dart';
-import '../../providers/auth_providers.dart';
 import '../../providers/request_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../providers/technician_providers.dart';
@@ -27,14 +28,6 @@ class AdminRequestDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsScreen> {
-  final _newNoteController = TextEditingController();
-  bool _isAddingNote = false;
-
-  @override
-  void dispose() {
-    _newNoteController.dispose();
-    super.dispose();
-  }
 
   Future<void> _handleAssignTechnician(TechnicianRequestModel req) async {
     // 1. Check Riverpod cached stream value
@@ -156,7 +149,16 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
               TextFormField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone Number (10 digits) *', hintText: '9876543210'),
+                maxLength: 10,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number (10 digits) *',
+                  hintText: '9876543210',
+                  counterText: '',
+                ),
                 validator: Validators.phoneNumber,
               ),
             ],
@@ -189,30 +191,19 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
     );
   }
 
-  Future<void> _handleSetInProgress(TechnicianRequestModel req) async {
-    try {
-      await ref.read(requestRepositoryProvider).setInProgress(requestId: req.id);
-      ref.invalidate(requestDetailProvider(req.id));
-      ref.invalidate(adminRequestsProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: AppTheme.successColor,
-            content: Text('Ticket marked In Progress.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update status: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _handleCloseOnBehalf(TechnicianRequestModel req) async {
-    final amountController = TextEditingController(text: '0');
+    final amountController = TextEditingController();
+    amountController.addListener(() {
+      final text = amountController.text;
+      if (text.length > 1 && text.startsWith('0') && text[1] != '.') {
+        final clean = text.replaceFirst(RegExp(r'^0+'), '');
+        final finalText = clean.isEmpty ? '0' : clean;
+        amountController.value = TextEditingValue(
+          text: finalText,
+          selection: TextSelection.collapsed(offset: finalText.length),
+        );
+      }
+    });
     final formKey = GlobalKey<FormState>();
 
     final amount = await showDialog<double>(
@@ -232,7 +223,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
               TextFormField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(prefixText: '₹ ', hintText: '0 to 100000'),
+                decoration: const InputDecoration(prefixText: '₹ ', hintText: 'e.g. 1000 (0 if complimentary)'),
                 validator: Validators.amountPaid,
               ),
               const SizedBox(height: 4),
@@ -246,7 +237,8 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successColor, foregroundColor: Colors.white),
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
+                final clean = amountController.text.trim().replaceFirst(RegExp(r'^0+(?=\d)'), '');
+                final amt = double.tryParse(clean.isEmpty ? '0' : clean) ?? 0.0;
                 Navigator.of(ctx).pop(amt);
               }
             },
@@ -272,6 +264,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
               content: Text('Ticket closed on behalf of doctor. Recorded ₹${amount.toInt()}.'),
             ),
           );
+          context.go('/admin');
         }
       } catch (e) {
         if (mounted) {
@@ -356,6 +349,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(backgroundColor: AppTheme.errorColor, content: Text('Ticket cancelled.')),
           );
+          context.go('/admin');
         }
       } catch (e) {
         if (mounted) {
@@ -367,63 +361,71 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
     }
   }
 
-  Future<void> _handleAddNote() async {
-    final note = _newNoteController.text.trim();
-    if (note.isEmpty) return;
-
-    final user = ref.read(currentUserProfileProvider).value;
-    final authorEmail = user?.email ?? 'operations@riodent.com';
-
-    setState(() => _isAddingNote = true);
-    try {
-      await ref.read(requestRepositoryProvider).addInternalNote(
-        requestId: widget.requestId,
-        note: note,
-        authorEmail: authorEmail,
-      );
-      _newNoteController.clear();
-      ref.invalidate(internalNotesProvider(widget.requestId));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save note: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isAddingNote = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.watch(activeTechniciansProvider);
     final reqAsync = ref.watch(requestDetailProvider(widget.requestId));
     final eventsAsync = ref.watch(requestEventsProvider(widget.requestId));
-    final notesAsync = ref.watch(internalNotesProvider(widget.requestId));
     final config = ref.watch(bookingConfigProvider).value ?? BookingConfigModel.defaultConfig();
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
+
+    debugPrint('*** AdminRequestDetailsScreen build: requestId=${widget.requestId}');
+    debugPrint('*** reqAsync state: $reqAsync');
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Admin Ticket Review'),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/admin');
+            }
+          },
+        ),
       ),
-      body: reqAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-        data: (req) {
-          if (req == null) {
-            return const Center(child: Text('Ticket not found'));
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/admin');
           }
+        },
+        child: reqAsync.when(
+          loading: () {
+            debugPrint('*** reqAsync is LOADING for ${widget.requestId}');
+            return const Center(child: CircularProgressIndicator());
+          },
+          error: (err, stack) {
+            debugPrint('*** reqAsync ERROR: $err\n$stack');
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('Error loading ticket: $err', style: const TextStyle(color: AppTheme.errorColor)),
+              ),
+            );
+          },
+          data: (req) {
+            debugPrint('*** reqAsync DATA: req=$req, id=${req?.id}, ticket=${req?.displayTicketId}');
+            if (req == null) {
+              return const Center(child: Text('Ticket not found'));
+            }
 
-          final statusColor = AppTheme.getStatusColor(req.status);
-          final hasTechnician = req.assignedTechnicianId != null && req.assignedTechnicianId!.isNotEmpty;
+            final statusColor = AppTheme.getStatusColor(req.status);
+            final statusLabel = AppTheme.getStatusLabel(req.status, req.cancelledBy);
+            final hasTechnician = req.assignedTechnicianId != null && req.assignedTechnicianId!.isNotEmpty;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header Ticket ID & Status
+                // 1. Header Ticket ID & Status
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -434,28 +436,30 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            req.displayTicketId,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppTheme.primaryDark),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Slot: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)} (${DateFormat('h:mm a').format(req.slotStart)})',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              req.displayTicketId,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryDark),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Slot: ${req.slotDate.isNotEmpty ? req.slotDate : DateFormat('yyyy-MM-dd').format(req.slotStart)} (${DateFormat('h:mm a').format(req.slotStart)})',
+                              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                         ),
                         child: Text(
-                          AppTheme.getStatusLabel(req.status),
+                          statusLabel,
                           style: TextStyle(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
@@ -469,7 +473,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
 
                 const SizedBox(height: 14),
 
-                // Clinic & Doctor Contact Card
+                // 2. Clinic & Doctor Details
                 _buildCard(
                   title: 'Clinic & Doctor Details',
                   icon: Icons.local_hospital_rounded,
@@ -479,20 +483,42 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                     _buildRow('Mobile (Tap to Call)', req.mobile),
                     _buildRow('Address', req.address.fullAddress),
                     const SizedBox(height: 8),
-                    // Open in Google Maps button (free plain url)
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primaryColor,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         final lat = req.address.lat;
                         final lng = req.address.lng;
-                        final query = (lat > 0 && lng > 0)
-                            ? '$lat,$lng'
-                            : Uri.encodeComponent(req.address.fullAddress);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Maps Link: https://www.google.com/maps/search/?api=1&query=$query')),
-                        );
+                        final fullAddress = req.address.fullAddress.trim();
+                        String url;
+                        if (lat > 0 && lng > 0) {
+                          url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+                        } else if (fullAddress.isNotEmpty) {
+                          url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(fullAddress)}';
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No location coordinates or address available for this ticket.')),
+                          );
+                          return;
+                        }
+
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          final uri = Uri.parse(url);
+                          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          if (!launched && mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Could not open map: $url')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Failed to launch Google Maps: $e')),
+                            );
+                          }
+                        }
                       },
                       icon: const Icon(Icons.map_rounded, size: 18),
                       label: const Text('Open in Google Maps'),
@@ -502,36 +528,36 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
 
                 const SizedBox(height: 14),
 
-                // Equipment & Issue Card
+                // 3. Equipment & Schedule
                 _buildCard(
                   title: 'Breakdown & Schedule',
                   icon: Icons.build_rounded,
                   children: [
-                    _buildRow('Category', req.issueLabel),
+                    _buildRow('Category', req.issueLabel.isNotEmpty ? req.issueLabel : req.issueCode),
                     _buildRow('Problem Description', req.issueDescription),
                     _buildRow('Created At', dateFormat.format(req.createdAt)),
-                    if (req.assignedTechnicianName != null) ...[
+                    if (req.assignedTechnicianName != null && req.assignedTechnicianName!.isNotEmpty) ...[
                       const Divider(height: 16),
                       _buildRow('Assigned Tech', req.assignedTechnicianName!),
-                      if (req.assignedTechnicianPhone != null)
+                      if (req.assignedTechnicianPhone != null && req.assignedTechnicianPhone!.isNotEmpty)
                         _buildRow('Tech Phone', req.assignedTechnicianPhone!),
                     ],
                     if (req.isCompleted) ...[
                       const Divider(height: 16),
-                      _buildRow('Amount Paid (Reported)', '₹${req.amountPaid?.toInt() ?? 0}'),
+                      _buildRow('Amount Paid', '₹${req.amountPaid?.toInt() ?? 0}'),
                       _buildRow('Completed By', req.completedBy == 'admin' ? 'Admin Override' : 'Doctor'),
                     ],
                     if (req.isCancelled) ...[
                       const Divider(height: 16),
                       _buildRow('Cancellation Reason', req.reasonText ?? 'Cancelled'),
-                      _buildRow('Cancelled By', req.cancelledBy == 'admin' ? 'RioDent Operations' : 'Doctor'),
+                      _buildRow('Cancelled By', req.cancelledBy == 'admin' ? 'Admin' : 'Doctor'),
                     ],
                   ],
                 ),
 
                 const SizedBox(height: 14),
 
-                // Administrative Dispatch Actions
+                // 4. Dispatch Actions
                 _buildCard(
                   title: 'Dispatch Actions',
                   icon: Icons.alt_route_rounded,
@@ -540,7 +566,6 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        // Assign / Reassign
                         if (TechnicianRequestModel.canAdminAssign(req.status)) ...[
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor),
@@ -549,21 +574,6 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                             label: Text(hasTechnician ? 'Reassign Tech' : 'Assign Technician'),
                           ),
                         ],
-
-                        // Set In Progress (disabled until assigned)
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusInProgress),
-                          onPressed: TechnicianRequestModel.canAdminSetInProgress(
-                            status: req.status,
-                            hasTechnician: hasTechnician,
-                          )
-                              ? () => _handleSetInProgress(req)
-                              : null,
-                          icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                          label: const Text('Set In Progress'),
-                        ),
-
-                        // Close on behalf
                         if (TechnicianRequestModel.canAdminCloseOnBehalf(req.status)) ...[
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successColor, foregroundColor: Colors.white),
@@ -572,8 +582,6 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
                             label: const Text('Close on Behalf'),
                           ),
                         ],
-
-                        // Cancel / Deny
                         if (TechnicianRequestModel.canAdminCancel(req.status)) ...[
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(foregroundColor: AppTheme.errorColor),
@@ -589,87 +597,18 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
 
                 const SizedBox(height: 14),
 
-                // Internal Notes Subcollection (Admin only)
-                _buildCard(
-                  title: 'Internal Admin Notes (Private)',
-                  icon: Icons.note_alt_rounded,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _newNoteController,
-                            decoration: const InputDecoration(
-                              hintText: 'Add private dispatch note...',
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _isAddingNote ? null : _handleAddNote,
-                          child: _isAddingNote
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Add'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    notesAsync.when(
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (err, _) => Text('Error: $err'),
-                      data: (notes) {
-                        if (notes.isEmpty) {
-                          return const Text('No internal notes recorded yet.', style: TextStyle(color: AppTheme.textHint, fontSize: 12));
-                        }
-                        return Column(
-                          children: notes.map((n) {
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppTheme.backgroundColor,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Icon(Icons.comment_outlined, size: 16, color: AppTheme.textSecondary),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(n['note'] as String? ?? '', style: const TextStyle(fontSize: 13)),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'By ${n['author'] ?? 'Admin'}',
-                                          style: const TextStyle(fontSize: 10, color: AppTheme.textHint),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Status Audit Events Timeline
+                // 6. Audit Event History
                 _buildCard(
                   title: 'Audit Event History',
                   icon: Icons.history_rounded,
                   children: [
                     eventsAsync.when(
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (err, _) => Text('Error: $err'),
+                      loading: () => const SizedBox(height: 30, child: Center(child: CircularProgressIndicator())),
+                      error: (err, _) => Text('Error: $err', style: const TextStyle(color: AppTheme.errorColor, fontSize: 12)),
                       data: (events) {
+                        if (events.isEmpty) {
+                          return const Text('No events recorded yet.', style: TextStyle(color: AppTheme.textHint, fontSize: 12));
+                        }
                         return Column(
                           children: events.map((event) {
                             final eColor = AppTheme.getStatusColor(event.status);
@@ -723,6 +662,7 @@ class _AdminRequestDetailsScreenState extends ConsumerState<AdminRequestDetailsS
             ),
           );
         },
+      ),
       ),
     );
   }

@@ -34,7 +34,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _successMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _isAdminEmail =>
+      _emailController.text.trim().toLowerCase() == 'riyaz.mohammed1799@gmail.com';
+
+  @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -224,7 +238,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: AppTheme.primaryColor,
                           child: const Icon(
-                            Icons.medical_services_rounded,
+                            Icons.chair_rounded,
                             size: 36,
                             color: Colors.white,
                           ),
@@ -510,6 +524,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: (!_isSignUpMode && _isAdminEmail)
+                                  ? AppTheme.primaryDark
+                                  : AppTheme.primaryColor,
+                              foregroundColor: Colors.white,
                             ),
                             onPressed: _isLoading ? null : _handleEmailAuth,
                             child: _isLoading
@@ -518,9 +536,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                   )
-                                : Text(
-                                    _isSignUpMode ? 'Create Clinic Account' : 'Sign In',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (!_isSignUpMode && _isAdminEmail) ...[
+                                        const Icon(Icons.shield_rounded, size: 18, color: Colors.white),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        _isSignUpMode
+                                            ? 'Create Clinic Account'
+                                            : (_isAdminEmail ? 'Sign In to Admin Portal' : 'Sign In'),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      ),
+                                    ],
                                   ),
                           ),
                         ],
@@ -549,24 +579,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
-                      ),
-                    ),
-                  ),
-
-                  // Admin Login Shortcut for Testing
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _isSignUpMode = false;
-                          _emailController.text = 'admin@riodent.com';
-                          _passwordController.text = 'RioDentAdmin2026!';
-                        });
-                      },
-                      icon: const Icon(Icons.admin_panel_settings_outlined, size: 14, color: AppTheme.textHint),
-                      label: const Text(
-                        'Admin Login (Testing)',
-                        style: TextStyle(color: AppTheme.textHint, fontSize: 12),
                       ),
                     ),
                   ),

@@ -37,7 +37,6 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
       {'key': 'ALL', 'label': 'All'},
       {'key': AppConstants.statusNew, 'label': 'Pending'},
       {'key': AppConstants.statusAssigned, 'label': 'Assigned'},
-      {'key': AppConstants.statusInProgress, 'label': 'In Progress'},
       {'key': AppConstants.statusCompleted, 'label': 'Completed'},
       {'key': AppConstants.statusCancelled, 'label': 'Cancelled'},
     ];
@@ -46,59 +45,81 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('My Service Requests'),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dentist');
+            }
+          },
+        ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Filter Chips Bar
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: 10),
-              child: SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: filters.length,
-                  separatorBuilder: (_, i) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final f = filters[index];
-                    final isSelected = _activeFilter == f['key'];
-                    return ChoiceChip(
-                      label: Text(f['label']!),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() => _activeFilter = f['key']!);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-            const Divider(height: 1),
-
-            // Requests List
-            Expanded(
-              child: requestsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text('Failed to load requests: $err', textAlign: TextAlign.center),
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/dentist');
+          }
+        },
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Filter Chips Bar
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: 10),
+                child: SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filters.length,
+                    separatorBuilder: (_, i) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final f = filters[index];
+                      final isSelected = _activeFilter == f['key'];
+                      return ChoiceChip(
+                        label: Text(f['label']!),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _activeFilter = f['key']!);
+                          }
+                        },
+                      );
+                    },
                   ),
                 ),
-                data: (allRequests) {
-                  // Filter list
-                  List<TechnicianRequestModel> filteredList;
-                  if (_activeFilter == 'ALL') {
-                    filteredList = allRequests;
-                  } else if (_activeFilter == 'ACTIVE') {
-                    filteredList = allRequests.where((r) => r.isActive).toList();
-                  } else {
-                    filteredList = allRequests.where((r) => r.status == _activeFilter).toList();
-                  }
+              ),
+              const Divider(height: 1),
+
+              // Requests List
+              Expanded(
+                child: requestsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text('Failed to load requests: $err', textAlign: TextAlign.center),
+                    ),
+                  ),
+                  data: (allRequests) {
+                    // Filter list
+                    List<TechnicianRequestModel> filteredList;
+                    if (_activeFilter == 'ALL') {
+                      filteredList = allRequests;
+                    } else if (_activeFilter == 'ACTIVE') {
+                      filteredList = allRequests.where((r) => r.isActive).toList();
+                    } else if (_activeFilter == AppConstants.statusAssigned) {
+                      filteredList = allRequests
+                          .where((r) => r.status == AppConstants.statusAssigned || r.status == AppConstants.statusInProgress)
+                          .toList();
+                    } else {
+                      filteredList = allRequests.where((r) => r.status == _activeFilter).toList();
+                    }
 
                   if (filteredList.isEmpty) {
                     return Center(
@@ -148,6 +169,7 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -221,16 +243,35 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    req.assignedTechnicianName != null
-                        ? 'Tech: ${req.assignedTechnicianName}'
-                        : 'Awaiting dispatch',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: req.assignedTechnicianName != null ? AppTheme.primaryColor : AppTheme.textSecondary,
+                  Expanded(
+                    child: Text(
+                      req.isCancelled
+                          ? (req.cancellationReason != null && req.cancellationReason!.isNotEmpty
+                              ? 'Cancelled: ${req.cancellationReason}'
+                              : 'Cancelled')
+                          : req.isCompleted
+                              ? (req.assignedTechnicianName != null
+                                  ? 'Completed • Tech: ${req.assignedTechnicianName}'
+                                  : 'Service Completed')
+                              : (req.assignedTechnicianName != null
+                                  ? 'Tech: ${req.assignedTechnicianName}'
+                                  : 'Awaiting dispatch'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: req.isCancelled
+                            ? AppTheme.statusCancelled
+                            : req.isCompleted
+                                ? AppTheme.statusCompleted
+                                : (req.assignedTechnicianName != null
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.textSecondary),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (req.isCompleted && req.amountPaid != null) ...[
                     Text(
                       'Paid: ₹${req.amountPaid!.toInt()}',

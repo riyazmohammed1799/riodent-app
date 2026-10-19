@@ -28,9 +28,15 @@ class RioDentApp extends ConsumerWidget {
       builder: (context, child) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            // When viewed on desktop/wide screens (> 640px), avoid full-width mobile stretching.
-            // Present a centered, elegant, professional layout with a clean subtle backdrop.
+            // When viewed on desktop/wide screens (> 640px), avoid full-width mobile stretching for doctor screens.
+            // Admin screens utilize the full desktop width for comprehensive dashboard tables and metrics.
             if (constraints.maxWidth > 640) {
+              final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+              final isAdminRoute = currentPath.startsWith('/admin');
+              if (isAdminRoute) {
+                return child ?? const SizedBox.shrink();
+              }
+
               final isDark = Theme.of(context).brightness == Brightness.dark;
               return Scaffold(
                 backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),

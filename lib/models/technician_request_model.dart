@@ -72,10 +72,21 @@ class RequestEvent {
   });
 
   factory RequestEvent.fromMap(Map<String, dynamic> map) {
+    DateTime parsedAt;
+    final atVal = map['at'];
+    if (atVal is Timestamp) {
+      parsedAt = atVal.toDate();
+    } else if (atVal is String) {
+      parsedAt = DateTime.tryParse(atVal) ?? DateTime.now();
+    } else if (atVal is int) {
+      parsedAt = DateTime.fromMillisecondsSinceEpoch(atVal);
+    } else {
+      parsedAt = DateTime.now();
+    }
     return RequestEvent(
       status: map['status'] as String? ?? '',
       by: map['by'] as String? ?? '',
-      at: (map['at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      at: parsedAt,
       note: map['note'] as String?,
     );
   }
@@ -228,27 +239,46 @@ class TechnicianRequestModel {
     RequestAddress parsedAddress;
     if (data['address'] is Map) {
       parsedAddress = RequestAddress.fromMap(Map<String, dynamic>.from(data['address'] as Map));
+    } else if (data['address'] is String && (data['address'] as String).isNotEmpty) {
+      parsedAddress = RequestAddress(
+        line: data['address'] as String,
+        landmark: data['landmark'] as String?,
+        area: data['locality'] as String? ?? data['area'] as String?,
+        city: data['city'] as String? ?? 'Hyderabad',
+        pincode: (data['pincode'] ?? '500001').toString(),
+        lat: (data['clinicLatitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble() ?? 0.0,
+        lng: (data['clinicLongitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble() ?? 0.0,
+      );
     } else {
       parsedAddress = RequestAddress(
         line: data['clinicAddress'] as String? ?? data['addressLine'] as String? ?? '',
         landmark: data['landmark'] as String?,
         area: data['locality'] as String? ?? data['area'] as String?,
         city: data['city'] as String? ?? 'Hyderabad',
-        pincode: data['pincode'] as String? ?? '500001',
+        pincode: (data['pincode'] ?? '500001').toString(),
         lat: (data['clinicLatitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble() ?? 0.0,
         lng: (data['clinicLongitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble() ?? 0.0,
       );
     }
 
     final now = DateTime.now();
-    DateTime parsedSlotStart;
-    if (data['slotStart'] is Timestamp) {
-      parsedSlotStart = (data['slotStart'] as Timestamp).toDate();
-    } else if (data['slotStart'] is String) {
-      parsedSlotStart = DateTime.tryParse(data['slotStart'] as String) ?? now;
-    } else {
-      parsedSlotStart = (data['createdAt'] as Timestamp?)?.toDate() ?? now;
+
+    DateTime parseDate(dynamic val, [DateTime? fallback]) {
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.tryParse(val) ?? fallback ?? now;
+      if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+      return fallback ?? now;
     }
+
+    DateTime? parseNullableDate(dynamic val) {
+      if (val == null) return null;
+      if (val is Timestamp) return val.toDate();
+      if (val is String) return DateTime.tryParse(val);
+      if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+      return null;
+    }
+
+    final parsedSlotStart = parseDate(data['slotStart'], parseDate(data['createdAt']));
 
     return TechnicianRequestModel(
       id: id.isNotEmpty ? id : (data['id'] as String? ?? ''),
@@ -268,18 +298,18 @@ class TechnicianRequestModel {
       assignedTechnicianId: data['assignedTechnicianId'] as String?,
       assignedTechnicianName: data['assignedTechnicianName'] as String?,
       assignedTechnicianPhone: data['assignedTechnicianPhone'] as String?,
-      assignedAt: (data['assignedAt'] as Timestamp?)?.toDate(),
-      startedAt: (data['startedAt'] as Timestamp?)?.toDate(),
-      completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
+      assignedAt: parseNullableDate(data['assignedAt']),
+      startedAt: parseNullableDate(data['startedAt']),
+      completedAt: parseNullableDate(data['completedAt']),
       completedBy: data['completedBy'] as String?,
       amountPaid: (data['amountPaid'] as num?)?.toDouble(),
-      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
+      cancelledAt: parseNullableDate(data['cancelledAt']),
       cancelledBy: data['cancelledBy'] as String?,
       reasonCode: data['reasonCode'] as String?,
       reasonText: data['reasonText'] as String? ?? data['cancellationReason'] as String?,
       adminNotes: data['adminNotes'] as String?,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? now,
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? now,
+      createdAt: parseDate(data['createdAt']),
+      updatedAt: parseDate(data['updatedAt']),
     );
   }
 

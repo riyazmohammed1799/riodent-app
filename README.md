@@ -12,11 +12,13 @@ RioDent is an enterprise-grade mobile and web platform built with Flutter and Fi
 
 ## 🚀 Live Deployments & Environments
 
-| Environment | Purpose | Firebase Project ID | Web URL | Status |
+| Environment | Purpose | Firebase Project ID | Region | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **DEV (Active)** | Development, Testing & QA | `equip-services-dev` | [https://equip-services-dev.web.app](https://equip-services-dev.web.app) | **Live & Operational** |
-| **STAGING** | Pre-production testing | `riodent-staging` | [https://riodent-staging.web.app](https://riodent-staging.web.app) | **Configured** |
-| **PROD** | Production release target | `riodent-prod` | *Target for Play Store backend* | **Ready for Rollout** |
+| **DEV** | Development, Testing & QA | `equip-services-dev` | `nam5` | **Live & Operational** ([Web App](https://equip-services-dev.web.app)) |
+| **STAGING** | Pre-production testing | `riodent-staging` | — | **Configured** |
+| **PROD** | Production Release (Google Play) | `riodent-prod` | `asia-south1` (Mumbai) | **Deployed & Ready** (`riodent-release-prod.aab`) |
+
+> 📖 **Audit & Conversation History:** See [MASTER_CONVERSATION_AND_RELEASE_LOG.md](MASTER_CONVERSATION_AND_RELEASE_LOG.md) for the complete chat history, architectural decisions, and release audit log.
 
 ---
 

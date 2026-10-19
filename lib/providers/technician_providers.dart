@@ -21,6 +21,12 @@ final techniciansProvider = StreamProvider<List<TechnicianModel>>((ref) {
   return repo.streamAllTechnicians();
 });
 
+/// Real-time stream provider for count of all registered technicians.
+final registeredTechnicianCountProvider = StreamProvider<int>((ref) {
+  final repo = ref.watch(technicianRepositoryProvider);
+  return repo.streamRegisteredCount();
+});
+
 /// Real-time stream provider for count of active technicians.
 final activeTechnicianCountProvider = StreamProvider<int>((ref) {
   final repo = ref.watch(technicianRepositoryProvider);

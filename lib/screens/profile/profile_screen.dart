@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_providers.dart';
@@ -209,9 +210,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clinic Profile'),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dentist');
+            }
+          },
+        ),
+        actions: [
+          if (userAsync.value?.email?.toLowerCase().trim() == 'riyaz.mohammed1799@gmail.com')
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryColor),
+              tooltip: 'Admin Portal',
+              onPressed: () => context.go('/admin'),
+            ),
+        ],
       ),
-      body: userAsync.when(
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/dentist');
+          }
+        },
+        child: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error loading profile: $err')),
         data: (user) {
@@ -375,9 +402,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 TextFormField(
                                   controller: _phoneController,
                                   keyboardType: TextInputType.phone,
+                                  maxLength: 10,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(10),
+                                  ],
                                   decoration: const InputDecoration(
-                                    labelText: 'Contact Mobile *',
+                                    labelText: 'Contact Mobile (10 digits) *',
                                     prefixIcon: Icon(Icons.phone_outlined),
+                                    counterText: '',
                                   ),
                                   validator: Validators.phoneNumber,
                                 ),
@@ -621,27 +654,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                 const SizedBox(height: 20),
 
-                // 5. Sign Out and Delete Account Actions
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _handleSignOut,
-                        icon: const Icon(Icons.logout_rounded, size: 20),
-                        label: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.errorColor,
+                // 5. Sign Out and Delete Account Actions (Aligned within Card)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppTheme.cardBorderColor),
+                          ),
+                          onPressed: _handleSignOut,
+                          icon: const Icon(Icons.logout_rounded, size: 20),
+                          label: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
-                        onPressed: _handleDeleteAccount,
-                        icon: const Icon(Icons.delete_forever_rounded, size: 20),
-                        label: const Text('Delete RioDent Account'),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.errorColor,
+                            side: BorderSide(color: AppTheme.errorColor.withValues(alpha: 0.4)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: _handleDeleteAccount,
+                          icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                          label: const Text('Delete RioDent Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -650,6 +691,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           );
         },
+      ),
       ),
     );
   }

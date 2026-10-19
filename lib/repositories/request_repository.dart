@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/riodent_share_model.dart';
 import '../models/technician_request_model.dart';
 import '../utils/constants.dart';
 
@@ -87,30 +88,41 @@ class RequestRepository {
     });
   }
 
-  /// Streams audit events subcollection for the status timeline.
+  /// Streams audit events subcollection for the status timeline without requiring server-side composite indexes.
   Stream<List<RequestEvent>> streamRequestEvents(String requestId) {
     return _requestsRef
         .doc(requestId)
         .collection('events')
-        .orderBy('at', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => RequestEvent.fromMap(doc.data())).toList();
-    });
+      final list = <RequestEvent>[];
+      for (final doc in snapshot.docs) {
+        try {
+          list.add(RequestEvent.fromMap(doc.data()));
+        } catch (_) {}
+      }
+      list.sort((a, b) => a.at.compareTo(b.at));
+      return list;
+    }).handleError((_) => <RequestEvent>[]);
   }
 
-  /// Streams internal admin notes subcollection (accessible only by admin).
+  /// Streams internal admin notes subcollection with in-memory sorting and graceful fallback.
   Stream<List<Map<String, dynamic>>> streamInternalNotes(String requestId) {
     return _requestsRef
         .doc(requestId)
         .collection('internal')
         .doc('notes')
         .collection('items')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((d) => d.data()).toList();
-    });
+      final list = snapshot.docs.map((d) => d.data()).toList();
+      list.sort((a, b) {
+        final aTime = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        final bTime = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        return bTime.compareTo(aTime);
+      });
+      return list;
+    }).handleError((_) => <Map<String, dynamic>>[]);
   }
 
   /// Appends an internal admin note to technicianRequests/{id}/internal/notes.
@@ -380,7 +392,7 @@ class RequestRepository {
     }
     return query.limit(limit).snapshots().map((snap) {
       final list = snap.docs.map((d) => TechnicianRequestModel.fromFirestore(d)).toList();
-      list.sort((a, b) => a.slotStart.compareTo(b.slotStart));
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
   }
@@ -484,5 +496,142 @@ class RequestRepository {
     } catch (_) {
       return [];
     }
+  }
+
+  CollectionReference<Map<String, dynamic>> get _settlementsRef =>
+      _firestore.collection('riodent_settlements');
+
+  /// Streams real-time RioDent Share accounting summary:
+  /// - RioDent Share = 10% of each eligible amount paid to doctor
+  /// - Technician payment remains intact and separate
+  /// - Settlements are recorded in 'riodent_settlements'
+  Stream<RioDentShareSummary> streamRioDentShareSummary() {
+    return _requestsRef
+        .where('status', isEqualTo: AppConstants.statusCompleted)
+        .snapshots()
+        .asyncMap((requestsSnap) async {
+      double totalDoctorPaid = 0.0;
+      final bills = <RioDentBillRecord>[];
+      final eligibleDocs = requestsSnap.docs.where((d) {
+        final amount = (d.data()['amountPaid'] as num?)?.toDouble() ?? 0.0;
+        return amount > 0;
+      }).toList();
+
+      for (final doc in eligibleDocs) {
+        final data = doc.data();
+        final doctorPaid = (data['amountPaid'] as num?)?.toDouble() ?? 0.0;
+        final techPayment = (data['technicianPayment'] as num?)?.toDouble() ??
+            (data['amountPaidToTechnician'] as num?)?.toDouble() ??
+            (doctorPaid * 0.6);
+        final share = doctorPaid * 0.10; // strictly 10% of doctor payment
+        totalDoctorPaid += doctorPaid;
+
+        final isSettled = data['shareSettled'] == true;
+        final settlementId = data['settlementId'] as String?;
+        final settledAt = (data['shareSettledAt'] as Timestamp?)?.toDate();
+
+        DateTime billDate = DateTime.now();
+        if (data['completedAt'] is Timestamp) {
+          billDate = (data['completedAt'] as Timestamp).toDate();
+        } else if (data['createdAt'] is Timestamp) {
+          billDate = (data['createdAt'] as Timestamp).toDate();
+        }
+
+        bills.add(RioDentBillRecord(
+          ticketId: doc.id,
+          displayTicketId: (data['ticketNumber'] as String?)?.isNotEmpty == true
+              ? data['ticketNumber'] as String
+              : 'REQ-${doc.id.substring(0, doc.id.length >= 6 ? 6 : doc.id.length).toUpperCase()}',
+          doctorId: data['dentistId'] as String? ?? '',
+          doctorName: data['dentistName'] as String? ?? 'Doctor',
+          clinicName: data['clinicName'] as String? ?? 'Clinic',
+          doctorPaymentAmount: doctorPaid,
+          technicianPaymentAmount: techPayment,
+          shareRate: 0.10,
+          calculatedShare: share,
+          paymentStatus: 'PAID',
+          billDate: billDate,
+          createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? billDate,
+          isSettled: isSettled,
+          settlementId: settlementId,
+          settledAt: settledAt,
+        ));
+      }
+
+      // Query settlements
+      double totalSettled = 0.0;
+      RioDentSettlementModel? latest;
+      try {
+        final settlementsSnap = await _settlementsRef.orderBy('settledAt', descending: true).get();
+        if (settlementsSnap.docs.isNotEmpty) {
+          latest = RioDentSettlementModel.fromFirestore(settlementsSnap.docs.first);
+          for (final sDoc in settlementsSnap.docs) {
+            totalSettled += (sDoc.data()['amountSettled'] as num?)?.toDouble() ?? 0.0;
+          }
+        }
+      } catch (_) {}
+
+      final totalShareEarned = totalDoctorPaid * 0.10;
+      final unsettledShare = (totalShareEarned - totalSettled).clamp(0.0, double.infinity);
+
+      // Sort bills by billDate descending
+      bills.sort((a, b) => b.billDate.compareTo(a.billDate));
+
+      return RioDentShareSummary(
+        totalDoctorPaid: totalDoctorPaid,
+        totalShareEarned: totalShareEarned,
+        totalShareSettled: totalSettled,
+        unsettledShare: unsettledShare,
+        eligibleBillsCount: bills.length,
+        latestSettlement: latest,
+        bills: bills,
+      );
+    });
+  }
+
+  /// Streams settlement history for admin review.
+  Stream<List<RioDentSettlementModel>> streamSettlements() {
+    return _settlementsRef.orderBy('settledAt', descending: true).snapshots().map((snap) {
+      return snap.docs.map((d) => RioDentSettlementModel.fromFirestore(d)).toList();
+    });
+  }
+
+  /// Concurrency-safe atomic settlement of eligible outstanding RioDent Share.
+  Future<void> settleRioDentShare({
+    required double amountToSettle,
+    required String adminEmail,
+    required List<String> requestIds,
+    String? notes,
+  }) async {
+    if (amountToSettle <= 0) {
+      throw Exception('Settlement amount must be greater than zero.');
+    }
+
+    final settlementDoc = _settlementsRef.doc();
+    final now = Timestamp.now();
+
+    final batch = _firestore.batch();
+
+    // 1. Create settlement record
+    batch.set(settlementDoc, {
+      'amountSettled': amountToSettle,
+      'billCount': requestIds.length,
+      'requestIds': requestIds,
+      'settledBy': adminEmail,
+      'settledAt': now,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
+
+    // 2. Mark included requests as settled
+    for (final reqId in requestIds) {
+      final reqRef = _requestsRef.doc(reqId);
+      batch.update(reqRef, {
+        'shareSettled': true,
+        'shareSettledAt': now,
+        'settlementId': settlementDoc.id,
+      });
+    }
+
+    await batch.commit();
   }
 }

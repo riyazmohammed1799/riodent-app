@@ -6,13 +6,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin verified by custom claim admin: true or designated admin email
+    // Admin verified strictly by designated admin email riyaz.mohammed1799@gmail.com
     function isAdmin() {
       return isAuthenticated()
-        && (
-          (request.auth.token.admin == true && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com'))
-          || request.auth.token.email in ['riyaz.mohammed1799@gmail.com', 'admin@riodent.in', 'admin@riodent.com']
-        );
+        && request.auth.token.email == 'riyaz.mohammed1799@gmail.com';
     }
 
     function isOwner(uid) {
@@ -94,9 +91,12 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
 
-      // Subcollection: events (audit history)
+      // Subcollection: events (audit history - restricted to request owner dentist or admin)
       match /events/{eventId} {
-        allow read, create: if isAuthenticated();
+        allow read, create: if isAuthenticated() && (
+          get(/databases/$(database)/documents/technicianRequests/$(requestId)).data.dentistId == request.auth.uid
+          || isAdmin()
+        );
         allow update, delete: if false;
       }
 
@@ -117,6 +117,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Only admin can write settings
       allow write: if isAdmin();
+    }
+
+    // RIODENT SETTLEMENTS collection (Admin only)
+    match /riodent_settlements/{settlementId} {
+      allow read, write: if isAdmin();
     }
   }
 }

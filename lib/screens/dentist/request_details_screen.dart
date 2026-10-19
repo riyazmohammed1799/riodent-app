@@ -46,8 +46,14 @@ class RequestDetailsScreen extends ConsumerWidget {
     TechnicianRequestModel req,
     BookingConfigModel config,
   ) async {
-    final reasons = config.doctorCancelReasons;
-    String selectedReason = reasons.isNotEmpty ? reasons.first : 'No longer needed';
+    final reasons = [
+      'Technician not suitable',
+      'Equipment issue resolved',
+      'Found alternate solution',
+      'Timing not convenient',
+      'Other',
+    ];
+    String selectedReason = req.isAssigned ? 'Technician not suitable' : reasons.first;
     final otherController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -55,11 +61,17 @@ class RequestDetailsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.cancel_outlined, color: AppTheme.errorColor),
-              SizedBox(width: 8),
-              Text('Cancel Service Request'),
+              const Icon(Icons.cancel_outlined, color: AppTheme.errorColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  req.isAssigned ? 'Reject Tech / Cancel' : 'Cancel Booking',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           content: Form(
@@ -144,6 +156,7 @@ class RequestDetailsScreen extends ConsumerWidget {
               content: Text('Service request cancelled.'),
             ),
           );
+          context.go('/dentist');
         }
       } catch (e) {
         if (context.mounted) {
@@ -160,7 +173,18 @@ class RequestDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     TechnicianRequestModel req,
   ) async {
-    final amountController = TextEditingController(text: '0');
+    final amountController = TextEditingController();
+    amountController.addListener(() {
+      final text = amountController.text;
+      if (text.length > 1 && text.startsWith('0') && text[1] != '.') {
+        final clean = text.replaceFirst(RegExp(r'^0+'), '');
+        final finalText = clean.isEmpty ? '0' : clean;
+        amountController.value = TextEditingValue(
+          text: finalText,
+          selection: TextSelection.collapsed(offset: finalText.length),
+        );
+      }
+    });
     final formKey = GlobalKey<FormState>();
 
     // Dialog 1: Prompt amount paid in whole rupees (0 to 100,000)
@@ -196,7 +220,7 @@ class RequestDetailsScreen extends ConsumerWidget {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     prefixText: '₹ ',
-                    hintText: '0 (enter 0 if complimentary or free visit)',
+                    hintText: 'e.g. 1000 (enter 0 if complimentary)',
                   ),
                   validator: Validators.amountPaid,
                 ),
@@ -217,7 +241,8 @@ class RequestDetailsScreen extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
+                final clean = amountController.text.trim().replaceFirst(RegExp(r'^0+(?=\d)'), '');
+                final amt = double.tryParse(clean.isEmpty ? '0' : clean) ?? 0.0;
                 Navigator.of(ctx).pop(amt);
               }
             },
@@ -272,6 +297,7 @@ class RequestDetailsScreen extends ConsumerWidget {
               content: Text('Ticket closed successfully. Recorded payment of ₹${enteredAmount.toInt()}.'),
             ),
           );
+          context.go('/dentist');
         }
       } catch (e) {
         if (context.mounted) {
@@ -294,7 +320,15 @@ class RequestDetailsScreen extends ConsumerWidget {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Ticket Details'),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dentist');
+            }
+          },
+        ),
         actions: [
           if (requestAsync.value != null && (requestAsync.value!.isNew || requestAsync.value!.isAssigned))
             IconButton(
@@ -304,105 +338,248 @@ class RequestDetailsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: requestAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-        data: (req) {
-          if (req == null) {
-            return const Center(child: Text('Ticket not found'));
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/dentist');
           }
+        },
+        child: requestAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+          data: (req) {
+            if (req == null) {
+              return const Center(child: Text('Ticket not found'));
+            }
 
-          final statusColor = AppTheme.getStatusColor(req.status);
-          final statusLabel = AppTheme.getStatusLabel(req.status);
+            final statusColor = AppTheme.getStatusColor(req.status);
+            final statusLabel = AppTheme.getStatusLabel(req.status, req.cancelledBy);
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header Ticket ID & Status
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    border: Border.all(color: AppTheme.cardBorderColor),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            req.displayTicketId,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryDark),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Booked on ${dateFormat.format(req.createdAt)}',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        ),
-                        child: Text(
-                          statusLabel,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Assigned Technician Notification Card (if assigned)
-                if (req.assignedTechnicianName != null) ...[
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header Ticket ID & Status
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
+                      border: Border.all(color: AppTheme.cardBorderColor),
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.person_pin_circle_rounded, color: AppTheme.successColor, size: 24),
-                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Technician ${req.assignedTechnicianName} will call or visit you during your slot.',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF14532D)),
+                                req.displayTicketId,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryDark),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              if (req.assignedTechnicianPhone != null && req.assignedTechnicianPhone!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Phone: ${req.assignedTechnicianPhone}',
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF166534), fontWeight: FontWeight.w600),
-                                ),
-                              ],
+                              const SizedBox(height: 2),
+                              Text(
+                                'Booked on ${dateFormat.format(req.createdAt)}',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 14),
-                ],
+
+                  // Pending 24-Hour Commitment Notice
+                  if (req.isNew) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F9FF),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: const Color(0xFFBAE6FD)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.access_time_rounded, color: Color(0xFF0284C7), size: 22),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Status: Pending Dispatch',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0369A1)),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'We will contact you within 24 hours to coordinate the technician visit.',
+                                  style: TextStyle(fontSize: 12, color: Color(0xFF334155), height: 1.35),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Cancelled Notification Banner
+                  if (req.isCancelled) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.cancel_rounded, color: AppTheme.statusCancelled, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Service Request Cancelled',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  req.cancellationReason != null && req.cancellationReason!.isNotEmpty
+                                      ? 'Reason: ${req.cancellationReason}'
+                                      : 'This service request was cancelled.',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D), height: 1.35),
+                                ),
+                                if (req.cancelledAt != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Cancelled on ${dateFormat.format(req.cancelledAt!)} by ${req.cancelledBy == 'admin' ? 'Admin' : 'Doctor'}',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B), fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Completed Notification Banner
+                  if (req.isCompleted) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: AppTheme.successColor, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Service Completed & Closed',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF14532D)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Payment Amount: ₹${req.amountPaid?.toInt() ?? 0} • Confirmed by ${req.completedBy == 'admin' ? 'Admin' : 'Doctor'}',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF166534), height: 1.35),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Assigned Technician Notification Card (if assigned)
+                  if (req.assignedTechnicianName != null && req.isAssigned) ...[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: const Color(0xFF86EFAC)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.person_pin_circle_rounded, color: AppTheme.successColor, size: 24),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'A technician has been assigned. They will contact you shortly.',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF14532D)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Assigned Technician: ${req.assignedTechnicianName}',
+                                  style: const TextStyle(fontSize: 13, color: Color(0xFF166534), fontWeight: FontWeight.w600),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (req.assignedTechnicianPhone != null && req.assignedTechnicianPhone!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Contact: ${req.assignedTechnicianPhone}',
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF166534)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                 // Equipment & Issue Card
                 _buildCard(
@@ -438,62 +615,24 @@ class RequestDetailsScreen extends ConsumerWidget {
 
                 const SizedBox(height: 14),
 
-                // Status Timeline Card (from events subcollection)
+                // Status Timeline Card (dynamic from ticket state and audit events)
                 _buildCard(
                   title: 'Status Timeline',
                   icon: Icons.timeline_rounded,
                   children: [
                     eventsAsync.when(
-                      loading: () => const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator())),
-                      error: (err, _) => Text('Error: $err'),
-                      data: (events) {
-                        if (events.isEmpty) {
-                          return const Text('Ticket created and waiting for dispatch.');
-                        }
-                        return Column(
-                          children: events.map((event) {
-                            final eColor = AppTheme.getStatusColor(event.status);
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    margin: const EdgeInsets.only(top: 4, right: 10),
-                                    decoration: BoxDecoration(color: eColor, shape: BoxShape.circle),
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              AppTheme.getStatusLabel(event.status),
-                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: eColor),
-                                            ),
-                                            Text(
-                                              DateFormat('MMM dd, hh:mm a').format(event.at),
-                                              style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
-                                            ),
-                                          ],
-                                        ),
-                                        if (event.note != null && event.note!.isNotEmpty) ...[
-                                          const SizedBox(height: 2),
-                                          Text(event.note!, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
+                      loading: () => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildTimelineSteps(req, const []),
+                      ),
+                      error: (err, stack) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildTimelineSteps(req, const []),
+                      ),
+                      data: (events) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildTimelineSteps(req, events),
+                      ),
                     ),
                   ],
                 ),
@@ -580,26 +719,9 @@ class RequestDetailsScreen extends ConsumerWidget {
                     ),
                     onPressed: () => _handleDoctorCancel(context, ref, req, config),
                     icon: const Icon(Icons.cancel_outlined, size: 20),
-                    label: const Text('Cancel Request', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ] else if (req.isInProgress) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.warningColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded, color: AppTheme.warningColor, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Technician is currently attending. To cancel this service, please contact support: ${config.supportPhone}',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
-                          ),
-                        ),
-                      ],
+                    label: Text(
+                      req.isAssigned ? 'Reject Technician / Cancel Booking' : 'Cancel Booking',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -610,7 +732,145 @@ class RequestDetailsScreen extends ConsumerWidget {
           );
         },
       ),
+    ),
+  );
+}
+
+  List<Widget> _buildTimelineSteps(TechnicianRequestModel req, List<RequestEvent> auditEvents) {
+    final steps = <Widget>[];
+
+    Widget buildStep({
+      required String title,
+      required String? subtitle,
+      required DateTime? time,
+      required Color color,
+      required bool isCompleted,
+      required bool isLast,
+    }) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: isCompleted ? color : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color, width: 2),
+                ),
+                child: isCompleted
+                    ? const Icon(Icons.check, size: 10, color: Colors.white)
+                    : null,
+              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 34,
+                  color: isCompleted ? color.withValues(alpha: 0.4) : Colors.grey.shade300,
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isCompleted ? AppTheme.textPrimary : AppTheme.textHint,
+                        ),
+                      ),
+                      if (time != null)
+                        Text(
+                          DateFormat('MMM dd, hh:mm a').format(time),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+                        ),
+                    ],
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isCompleted ? AppTheme.textSecondary : AppTheme.textHint,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Step 1: Created / Pending
+    steps.add(
+      buildStep(
+        title: 'Booking Created',
+        subtitle: 'Request placed for ${req.issueLabel}',
+        time: req.createdAt,
+        color: AppTheme.primaryColor,
+        isCompleted: true,
+        isLast: false,
+      ),
     );
+
+    // Step 2: Assigned
+    final hasAssigned = req.isAssigned || req.isCompleted || (req.assignedTechnicianName != null && req.assignedTechnicianName!.isNotEmpty);
+    if (!req.isCancelled) {
+      steps.add(
+        buildStep(
+          title: 'Technician Assigned',
+          subtitle: hasAssigned
+              ? 'Technician: ${req.assignedTechnicianName}'
+              : 'Waiting for technician assignment',
+          time: req.assignedAt,
+          color: hasAssigned ? AppTheme.statusAssigned : Colors.grey,
+          isCompleted: hasAssigned,
+          isLast: false,
+        ),
+      );
+
+      // Step 3: Completed
+      steps.add(
+        buildStep(
+          title: 'Service Completed',
+          subtitle: req.isCompleted
+              ? 'Confirmed by ${req.completedBy == 'dentist' ? 'Doctor' : 'Admin'} • Amount: ₹${req.amountPaid?.toInt() ?? 0}'
+              : 'Service in progress / awaiting confirmation',
+          time: req.completedAt,
+          color: req.isCompleted ? AppTheme.successColor : Colors.grey,
+          isCompleted: req.isCompleted,
+          isLast: true,
+        ),
+      );
+    } else {
+      // Cancelled
+      steps.add(
+        buildStep(
+          title: 'Booking Cancelled',
+          subtitle: 'Cancelled by ${req.cancelledBy == 'dentist' ? 'Doctor' : 'Admin'}${req.reasonText != null && req.reasonText!.isNotEmpty ? ': ${req.reasonText}' : ''}',
+          time: req.cancelledAt ?? req.updatedAt,
+          color: AppTheme.errorColor,
+          isCompleted: true,
+          isLast: true,
+        ),
+      );
+    }
+
+    return steps;
   }
 
   Widget _buildCard({

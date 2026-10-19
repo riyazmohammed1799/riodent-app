@@ -55,12 +55,31 @@ class _TechnicianAssignmentScreenState extends ConsumerState<TechnicianAssignmen
     final theme = Theme.of(context);
     final techAsync = ref.watch(activeTechniciansProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Assign Technician'),
-        leading: BackButton(onPressed: () => context.pop()),
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/admin/requests/${widget.requestId}');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        appBar: AppBar(
+          title: const Text('Assign Technician'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/admin/requests/${widget.requestId}');
+              }
+            },
+          ),
+        ),
       body: techAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
@@ -153,6 +172,7 @@ class _TechnicianAssignmentScreenState extends ConsumerState<TechnicianAssignmen
           );
         },
       ),
+    ),
     );
   }
 }

@@ -148,7 +148,7 @@ void main() {
         await tester.pump();
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Ayesha Dental Care'), findsOneWidget);
+        expect(find.text('Dr. Ayesha Khan'), findsOneWidget);
       });
 
       testWidgets('BookTechnicianScreen renders with zero overflow at ${size.width}x${size.height}', (tester) async {

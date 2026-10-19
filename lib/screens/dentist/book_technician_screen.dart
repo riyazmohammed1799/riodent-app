@@ -38,7 +38,6 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
 
   String? _selectedIssueCode;
   DateTime _selectedDate = DateTime.now();
-  TimeSlotItem? _selectedSlot;
 
   double? _detectedLat;
   double? _detectedLng;
@@ -185,23 +184,6 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
       return;
     }
 
-    if (_selectedSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a visit time slot')),
-      );
-      return;
-    }
-
-    // Validate slot is future per IST rules
-    final slotStart = _selectedSlot!.getStartDateTime(_selectedDate);
-    final now = DateTime.now();
-    if (!BookingConfigModel.isSlotBookable(slotStart: slotStart, now: now, minLeadMinutes: config.minLeadMinutes)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('This slot starts too soon. Please select a time slot at least ${config.minLeadMinutes} minutes from now.')),
-      );
-      return;
-    }
-
     // Check maximum open requests limit (config: default 3)
     final dentist = ref.read(currentUserProfileProvider).value;
     if (dentist != null) {
@@ -224,7 +206,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
     );
 
     final slotDateFormatted = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    final displayDate = DateFormat('EEE, MMM dd').format(_selectedDate);
+    final displayDate = DateFormat('EEE, MMM dd, yyyy').format(_selectedDate);
 
     if (!mounted) return;
     context.push('/dentist/review', extra: {
@@ -244,9 +226,9 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
       'issueDescription': _descriptionController.text.trim(),
       'slotDate': slotDateFormatted,
       'slotDisplayDate': displayDate,
-      'slotKey': _selectedSlot!.key,
-      'slotLabel': _selectedSlot!.label,
-      'slotStart': slotStart,
+      'slotKey': 'full_day',
+      'slotLabel': '24h Coordination Window',
+      'slotStart': _selectedDate,
     });
   }
 
@@ -286,6 +268,34 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Service Coverage Notice Banner (Section 9)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F9FF),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(color: const Color(0xFFBAE6FD)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.location_on_rounded, size: 20, color: Color(0xFF0284C7)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'We currently provide technician services in Hyderabad, including Rangareddy, Secunderabad, and Cyberabad.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1E293B),
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 // STEP 1: Equipment Details
                 _buildSectionHeader('1. Equipment Details', Icons.build_rounded),
                 Container(
@@ -375,7 +385,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Technician Contact Mobile (Strictly 10 digits)
+                      // Doctor Contact Mobile (Section 8: registered contact number of authenticated doctor)
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.number,
@@ -385,8 +395,8 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                           LengthLimitingTextInputFormatter(10),
                         ],
                         decoration: const InputDecoration(
-                          labelText: 'Technician Contact Mobile *',
-                          hintText: '10 digits (for technician to call before visit)',
+                          labelText: "Doctor's Contact Mobile *",
+                          hintText: '10 digits (registered mobile for technician coordination)',
                           prefixIcon: Icon(Icons.phone_outlined),
                           counterText: '',
                         ),
@@ -479,8 +489,8 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
 
                 const SizedBox(height: 20),
 
-                // STEP 3: Time Slot Picker
-                _buildSectionHeader('3. Preferred Visit Time Slot (IST)', Icons.schedule_rounded),
+                // STEP 3: Preferred Visit Date & 24-Hour Commitment (Section 6)
+                _buildSectionHeader('3. Preferred Visit Date', Icons.calendar_today_rounded),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: _cardDecoration(),
@@ -488,7 +498,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Select Date',
+                        'Select Service Date *',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 8),
@@ -504,7 +514,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                                 date.month == _selectedDate.month &&
                                 date.day == _selectedDate.day;
                             final isToday = index == 0;
-                            final label = isToday ? 'Today' : DateFormat('EEE d').format(date);
+                            final label = isToday ? 'Today' : DateFormat('EEE, MMM d').format(date);
 
                             return ChoiceChip(
                               label: Text(label),
@@ -513,7 +523,6 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                                 if (selected) {
                                   setState(() {
                                     _selectedDate = date;
-                                    _selectedSlot = null; // reset slot selection
                                   });
                                 }
                               },
@@ -522,48 +531,44 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Select Slot',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Slots chips
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: config.slots.map((slot) {
-                          final slotStart = slot.getStartDateTime(_selectedDate);
-                          final isBookable = BookingConfigModel.isSlotBookable(
-                            slotStart: slotStart,
-                            now: DateTime.now(),
-                            minLeadMinutes: config.minLeadMinutes,
-                          );
-                          final isSelected = _selectedSlot?.key == slot.key;
-
-                          return ChoiceChip(
-                            label: Text(slot.label),
-                            selected: isSelected,
-                            onSelected: isBookable
-                                ? (selected) {
-                                    setState(() => _selectedSlot = selected ? slot : null);
-                                  }
-                                : null,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(Icons.info_outline_rounded, size: 16, color: AppTheme.textSecondary),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'The technician will call you, or reach your clinic, during this time.',
-                              style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.access_time_filled_rounded, size: 22, color: Color(0xFF0284C7)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '24-Hour Service Commitment',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'We will contact you within 24 hours to coordinate the technician visit.',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: const Color(0xFF334155),
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

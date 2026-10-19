@@ -20,24 +20,26 @@ class RequestSubmittedScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     String ticketId = 'REQ-SUBMITTED';
-    String mobile = '';
-    String slot = 'your scheduled slot';
 
     if (requestId is Map<String, dynamic>) {
       final map = requestId as Map<String, dynamic>;
       ticketId = map['ticketNumber'] as String? ?? 'REQ-SUBMITTED';
-      mobile = map['mobile'] as String? ?? '';
-      slot = map['slot'] as String? ?? 'your scheduled slot';
     } else if (requestId is String && (requestId as String).isNotEmpty) {
       ticketId = requestId as String;
     }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingMd),
-          child: Column(
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          context.go('/dentist');
+        },
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingMd),
+            child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -68,9 +70,7 @@ class RequestSubmittedScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                mobile.isNotEmpty
-                    ? 'Our technician will call you at $mobile during $slot to understand the issue.'
-                    : 'Our technician will call you during $slot to understand the issue.',
+                'We will contact you within 24 hours to coordinate the technician visit.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondary,
                   fontSize: 15,
@@ -117,7 +117,7 @@ class RequestSubmittedScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
                           child: const Text(
-                            'Pending Dispatch',
+                            'Pending',
                             style: TextStyle(
                               color: AppTheme.statusNew,
                               fontWeight: FontWeight.bold,
@@ -163,6 +163,7 @@ class RequestSubmittedScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

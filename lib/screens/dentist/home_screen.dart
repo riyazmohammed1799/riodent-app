@@ -46,7 +46,7 @@ class DentistHomeScreen extends ConsumerWidget {
               child: Image.asset(
                 'assets/images/riodent_icon.png',
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(Icons.medical_services_rounded, color: AppTheme.primaryColor, size: 20),
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.chair_rounded, color: AppTheme.primaryColor, size: 20),
               ),
             ),
             const SizedBox(width: 10),
@@ -78,6 +78,12 @@ class DentistHomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          if (dentist?.email?.toLowerCase().trim() == 'riyaz.mohammed1799@gmail.com')
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryColor),
+              tooltip: 'Admin Dashboard',
+              onPressed: () => context.go('/admin'),
+            ),
           IconButton(
             icon: const Icon(Icons.assignment_outlined),
             tooltip: 'My Requests',
@@ -129,25 +135,25 @@ class DentistHomeScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
+                                'Welcome,',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
                                 dentist?.displayName.isNotEmpty == true
-                                    ? 'Welcome, Dr. ${dentist!.displayName}'
-                                    : 'Welcome Doctor',
+                                    ? (dentist!.displayName.toLowerCase().startsWith('dr')
+                                        ? dentist.displayName
+                                        : 'Dr. ${dentist.displayName}')
+                                    : 'Doctor',
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   color: AppTheme.primaryDark,
                                   fontWeight: FontWeight.w800,
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                (dentist?.clinicAddress != null && dentist!.clinicAddress!.isNotEmpty)
-                                    ? dentist.clinicAddress!
-                                    : 'Hyderabad Certified Dental Network',
-                                style: const TextStyle(
-                                  color: Color(0xFF0284C7),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -182,15 +188,16 @@ class DentistHomeScreen extends ConsumerWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.verified_rounded, color: Color(0xFF0284C7), size: 18),
+                          Icon(Icons.location_on_outlined, color: Color(0xFF0284C7), size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'RioDent platform is free to use. Fast on-site technician dispatch for your dental equipment.',
+                              'We currently provide technician services in Hyderabad, including Rangareddy, Secunderabad, and Cyberabad.',
                               style: TextStyle(
                                 color: Color(0xFF334155),
                                 fontSize: 12,
                                 height: 1.4,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -218,14 +225,14 @@ class DentistHomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 18),
 
-              // 4 Live Status Tiles (Pending, Assigned, In Progress, Completed)
+              // 4 Primary Status Tiles (Pending, Assigned, Completed, Cancelled) per Section 4
               Builder(
                 builder: (context) {
                   final allRequests = requestsAsync.value ?? [];
                   final pendingCount = allRequests.where((r) => r.isNew).length;
                   final assignedCount = allRequests.where((r) => r.isAssigned).length;
-                  final inProgressCount = allRequests.where((r) => r.isInProgress).length;
                   final completedCount = allRequests.where((r) => r.isCompleted).length;
+                  final cancelledCount = allRequests.where((r) => r.isCancelled).length;
 
                   return Row(
                     children: [
@@ -249,20 +256,20 @@ class DentistHomeScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       _buildStatusTile(
                         context: context,
-                        label: 'In Progress',
-                        count: inProgressCount,
-                        color: AppTheme.statusInProgress,
-                        icon: Icons.engineering_rounded,
-                        filter: AppConstants.statusInProgress,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildStatusTile(
-                        context: context,
                         label: 'Completed',
                         count: completedCount,
                         color: AppTheme.statusCompleted,
                         icon: Icons.check_circle_rounded,
                         filter: AppConstants.statusCompleted,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusTile(
+                        context: context,
+                        label: 'Cancelled',
+                        count: cancelledCount,
+                        color: AppTheme.statusCancelled,
+                        icon: Icons.cancel_rounded,
+                        filter: AppConstants.statusCancelled,
                       ),
                     ],
                   );
@@ -513,13 +520,27 @@ class DentistHomeScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      req.assignedTechnicianName != null
-                          ? 'Tech: ${req.assignedTechnicianName}'
-                          : 'Coordinator dispatching...',
+                      req.isCancelled
+                          ? (req.cancellationReason != null && req.cancellationReason!.isNotEmpty
+                              ? 'Cancelled: ${req.cancellationReason}'
+                              : 'Cancelled')
+                          : req.isCompleted
+                              ? (req.assignedTechnicianName != null
+                                  ? 'Completed • Tech: ${req.assignedTechnicianName}'
+                                  : 'Service Completed')
+                              : (req.assignedTechnicianName != null
+                                  ? 'Tech: ${req.assignedTechnicianName}'
+                                  : 'Coordinator dispatching...'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: req.assignedTechnicianName != null ? AppTheme.primaryColor : AppTheme.textSecondary,
+                        color: req.isCancelled
+                            ? AppTheme.statusCancelled
+                            : req.isCompleted
+                                ? AppTheme.statusCompleted
+                                : (req.assignedTechnicianName != null
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.textSecondary),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

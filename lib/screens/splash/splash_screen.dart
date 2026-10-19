@@ -14,16 +14,41 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Illuminated RioDent Logo with glowing highlight
             Container(
-              padding: const EdgeInsets.all(20),
+              width: 130,
+              height: 130,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                color: Colors.white,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                    blurRadius: 36,
+                    spreadRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    spreadRadius: 3,
+                  ),
+                ],
+                border: Border.all(
+                  color: const Color(0xFFBAE6FD),
+                  width: 2.5,
+                ),
               ),
-              child: const Icon(
-                Icons.medical_services_rounded,
-                size: 72,
-                color: AppTheme.primaryColor,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/riodent_icon.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                    'assets/images/riodent_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),

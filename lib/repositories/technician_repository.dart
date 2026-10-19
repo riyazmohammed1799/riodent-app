@@ -99,6 +99,21 @@ class TechnicianRepository {
     await _techRef.doc(id).delete();
   }
 
+  /// Live real-time stream of all registered technician count.
+  Stream<int> streamRegisteredCount() {
+    return _techRef.snapshots().map((snap) => snap.docs.length);
+  }
+
+  /// Counts total registered technicians.
+  Future<int> getRegisteredTechnicianCount() async {
+    try {
+      final agg = await _techRef.count().get();
+      return agg.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   /// Live real-time stream of active technician count.
   Stream<int> streamActiveCount() {
     return _techRef

@@ -21,15 +21,34 @@ class AdminRequestListScreen extends ConsumerWidget {
       'ALL',
       AppConstants.statusNew,
       AppConstants.statusAssigned,
-      AppConstants.statusInProgress,
       AppConstants.statusCompleted,
       AppConstants.statusCancelled,
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Request Queue'),
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/admin');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/admin');
+              }
+            },
+          ),
+          title: const Text('Request Queue'),
+        ),
       body: Column(
         children: [
           // Filter Chips
@@ -168,6 +187,7 @@ class AdminRequestListScreen extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

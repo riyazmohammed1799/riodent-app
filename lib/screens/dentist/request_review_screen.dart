@@ -144,7 +144,6 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
     final issueLabel = widget.requestData['issueLabel'] as String? ?? '';
     final issueDescription = widget.requestData['issueDescription'] as String? ?? '';
     final slotDisplayDate = widget.requestData['slotDisplayDate'] as String? ?? '';
-    final slotLabel = widget.requestData['slotLabel'] as String? ?? '';
 
     final fullAddressText = [
       addressLine,
@@ -221,13 +220,13 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
 
               const SizedBox(height: 14),
 
-              // 3. Time Slot & Initial Status Card
+              // 3. Visit Schedule & Commitment Card
               _buildSectionCard(
-                title: 'Visit Schedule & Status',
-                icon: Icons.schedule_rounded,
+                title: 'Visit Schedule & Commitment',
+                icon: Icons.calendar_today_rounded,
                 children: [
                   _buildDataRow('Preferred Date', slotDisplayDate),
-                  _buildDataRow('Time Window', slotLabel),
+                  _buildDataRow('Service Commitment', 'We will contact you within 24 hours to coordinate the technician visit.'),
                   const Divider(height: 18),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -245,7 +244,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
                           child: const Text(
-                            'Technician will be assigned by RioDent',
+                            'Pending (Technician will be assigned)',
                             textAlign: TextAlign.end,
                             style: TextStyle(
                               color: AppTheme.primaryColor,

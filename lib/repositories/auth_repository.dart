@@ -1,15 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Repository handling authentication flows for dentists and admin.
-/// Admin privileges are governed by Firebase custom claims ('admin': true).
-/// All demo credentials, 1-click test buttons, and phone OTP are removed per specification.
+/// Admin privileges are governed by Firebase custom claims ('admin': true),
+/// known admin emails, or Firestore database access control ('role': 'admin' / admins collection).
 class AuthRepository {
   final FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
-  AuthRepository({FirebaseAuth? firebaseAuth})
-      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance {
+  AuthRepository({
+    FirebaseAuth? firebaseAuth,
+    FirebaseFirestore? firestore,
+  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance {
     if (!kIsWeb) {
       try {
         GoogleSignIn.instance.initialize();
@@ -19,26 +24,19 @@ class AuthRepository {
     }
   }
 
+  FirebaseFirestore get firestore => _firestore;
+
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   User? get currentUser => _firebaseAuth.currentUser;
 
-  /// Returns true if current authenticated user has the Firebase custom claim admin: true or is known admin email.
+  /// Returns true if current authenticated user has admin privileges.
+  /// Strictly restricted to designated administrator email: riyaz.mohammed1799@gmail.com.
   Future<bool> checkIsAdminClaim([bool forceRefresh = false]) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return false;
     final email = user.email?.toLowerCase().trim();
-    if (email == 'riyaz.mohammed1799@gmail.com' ||
-        email == 'admin@riodent.in' ||
-        email == 'admin@riodent.com') {
-      return true;
-    }
-    try {
-      final tokenResult = await user.getIdTokenResult(forceRefresh);
-      return tokenResult.claims?['admin'] == true;
-    } catch (_) {
-      return false;
-    }
+    return email == 'riyaz.mohammed1799@gmail.com';
   }
 
   /// Signs in a user using Google Sign-In.
