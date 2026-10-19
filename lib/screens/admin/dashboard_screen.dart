@@ -1450,7 +1450,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                     ref.invalidate(activeTechniciansProvider);
                                     ref.invalidate(registeredTechnicianCountProvider);
                                     ref.invalidate(activeTechnicianCountProvider);
-                                    if (context.mounted) {
+                                    if (mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(content: Text('${tech.name} removed from roster.')),
                                       );
@@ -1592,7 +1592,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
+        builder: (dialogContext, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
             title: const Row(
@@ -1705,7 +1705,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
+        builder: (dialogContext, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
             title: const Row(
