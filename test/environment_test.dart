@@ -18,9 +18,9 @@ void main() {
       expect(env.isProd, isTrue);
       expect(env.isDev, isFalse);
       expect(env.isDebug, isFalse);
-      expect(env.firebaseProjectId, equals('equip-services-dev'));
+      expect(env.firebaseProjectId, equals('riodent-prod'));
       expect(env.label, contains('PROD'));
-      expect(env.firebaseOptions.projectId, equals('equip-services-dev'));
+      expect(env.firebaseOptions.projectId, equals('riodent-prod'));
     });
 
     test('Environment.current resolves correctly based on dart-define', () {
