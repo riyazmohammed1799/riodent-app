@@ -18,6 +18,8 @@ RioDent is an enterprise-grade mobile and web platform built with Flutter and Fi
 | **STAGING** | Pre-production testing | `riodent-staging` | — | **Configured** |
 | **PROD** | Production Release (Google Play) | `riodent-prod` | `asia-south1` (Mumbai) | **Deployed & Ready** (`riodent-release-prod.aab`) |
 
+> 📜 **Client Release Certificate & Test Matrix:** See [CLIENT_QA_AUDIT_AND_RELEASE_CERTIFICATE.md](CLIENT_QA_AUDIT_AND_RELEASE_CERTIFICATE.md) for the executive sign-off, all 89 test case results, and final GO verdict.  
+> 📊 **Client Presentation Deck:** See [CLIENT_PRESENTATION_AND_END_TO_END_SPEC.md](CLIENT_PRESENTATION_AND_END_TO_END_SPEC.md) for the slide-by-slide end-to-end screen, button, and workflow specification.  
 > 📖 **Audit & Conversation History:** See [MASTER_CONVERSATION_AND_RELEASE_LOG.md](MASTER_CONVERSATION_AND_RELEASE_LOG.md) for the complete chat history, architectural decisions, and release audit log.
 
 ---
