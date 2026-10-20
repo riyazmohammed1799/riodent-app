@@ -62,9 +62,10 @@ class DentistHomeScreen extends ConsumerWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (dentist?.clinicName?.isNotEmpty == true)
+                  if (dentist?.clinicName?.isNotEmpty == true &&
+                      dentist!.clinicName != 'Dental Clinic')
                     Text(
-                      dentist!.clinicName!,
+                      dentist.clinicName!,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -205,18 +206,31 @@ class DentistHomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () => context.push('/dentist/book'),
-                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                      label: const Text(
-                        'Book a Technician',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                          ),
+                        ),
+                        onPressed: () => context.push('/dentist/book'),
+                        icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                        label: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Book a Technician ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],

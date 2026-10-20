@@ -36,9 +36,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!_isInit) {
       final user = ref.read(currentUserProfileProvider).value;
       _nameController = TextEditingController(text: user?.displayName ?? '');
-      _clinicController = TextEditingController(text: user?.clinicName ?? '');
+      final initialClinic = (user?.clinicName != null &&
+              user!.clinicName!.trim().isNotEmpty &&
+              user.clinicName != 'Dental Clinic')
+          ? user.clinicName!
+          : '';
+      _clinicController = TextEditingController(text: initialClinic);
       _phoneController = TextEditingController(text: user?.phone ?? '');
-      _addressController = TextEditingController(text: user?.clinicAddress ?? '');
+      final initialAddress = (user?.clinicAddress != null &&
+              user!.clinicAddress!.trim().isNotEmpty &&
+              user.clinicAddress != 'Hyderabad, Telangana' &&
+              user.clinicAddress != 'Hyderabad')
+          ? user.clinicAddress!
+          : '';
+      _addressController = TextEditingController(text: initialAddress);
       _isInit = true;
     }
   }
@@ -336,9 +347,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    (user.clinicName != null && user.clinicName!.isNotEmpty)
+                                    (user.clinicName != null &&
+                                            user.clinicName!.trim().isNotEmpty &&
+                                            user.clinicName != 'Dental Clinic')
                                         ? user.clinicName!
-                                        : 'Dental Clinic',
+                                        : 'Clinic name not set',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(

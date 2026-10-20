@@ -108,8 +108,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             displayName: doctorName,
             email: user.email,
             phone: user.phoneNumber ?? '',
-            clinicName: 'Dental Clinic',
-            clinicAddress: 'Hyderabad, Telangana',
+            clinicName: '',
+            clinicAddress: '',
           );
         }
       }
@@ -146,14 +146,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           final doctorName = _nameController.text.trim().isNotEmpty
               ? _nameController.text.trim()
               : 'Doctor';
-          final clinicName = _clinicController.text.trim().isNotEmpty
-              ? _clinicController.text.trim()
-              : 'Dental Clinic';
+          final clinicName = _clinicController.text.trim();
 
           await userRepo.createUser(
             uid: user.uid,
             displayName: doctorName,
             clinicName: clinicName,
+            clinicAddress: '',
             email: user.email,
           );
           // Directly proceeds to Home via router state listener

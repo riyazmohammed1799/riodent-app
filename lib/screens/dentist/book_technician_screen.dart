@@ -59,13 +59,20 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
         if (_doctorNameController.text.isEmpty && dentist.displayName.isNotEmpty) {
           _doctorNameController.text = dentist.displayName;
         }
-        if (_clinicNameController.text.isEmpty && dentist.clinicName != null) {
+        if (_clinicNameController.text.isEmpty &&
+            dentist.clinicName != null &&
+            dentist.clinicName!.trim().isNotEmpty &&
+            dentist.clinicName != 'Dental Clinic') {
           _clinicNameController.text = dentist.clinicName!;
         }
         if (_phoneController.text.isEmpty && dentist.phone.isNotEmpty) {
           _phoneController.text = dentist.phone.replaceAll('+91', '').trim();
         }
-        if (_addressLineController.text.isEmpty && dentist.clinicAddress != null) {
+        if (_addressLineController.text.isEmpty &&
+            dentist.clinicAddress != null &&
+            dentist.clinicAddress!.trim().isNotEmpty &&
+            dentist.clinicAddress != 'Hyderabad, Telangana' &&
+            dentist.clinicAddress != 'Hyderabad') {
           _addressLineController.text = dentist.clinicAddress!;
         }
         _detectedLat = dentist.clinicLatitude;
@@ -120,25 +127,75 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
       try {
         final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
         if (placemarks.isNotEmpty) {
-          final place = placemarks.first;
-          final street = place.street ?? '';
-          final subLocality = place.subLocality ?? place.locality ?? '';
-          final postal = place.postalCode ?? '';
+          String detectedArea = '';
+          String detectedPostal = '';
 
-          if (street.isNotEmpty && _addressLineController.text.isEmpty) {
-            _addressLineController.text = street;
+          // Iterate all returned placemarks to find the best locality/area and 6-digit pincode
+          for (final place in placemarks) {
+            if (detectedArea.isEmpty) {
+              if (place.subLocality != null && place.subLocality!.trim().isNotEmpty) {
+                detectedArea = place.subLocality!.trim();
+              } else if (place.locality != null &&
+                  place.locality!.trim().isNotEmpty &&
+                  place.locality!.trim() != 'Hyderabad') {
+                detectedArea = place.locality!.trim();
+              } else if (place.subAdministrativeArea != null &&
+                  place.subAdministrativeArea!.trim().isNotEmpty &&
+                  place.subAdministrativeArea!.trim() != 'Hyderabad') {
+                detectedArea = place.subAdministrativeArea!.trim();
+              }
+            }
+
+            if (detectedPostal.isEmpty) {
+              if (place.postalCode != null && place.postalCode!.trim().isNotEmpty) {
+                final match = RegExp(r'\b500\d{3}\b|\b[1-9][0-9]{5}\b').firstMatch(place.postalCode!);
+                if (match != null) {
+                  detectedPostal = match.group(0)!;
+                } else if (place.postalCode!.trim().length == 6) {
+                  detectedPostal = place.postalCode!.trim();
+                }
+              }
+            }
+
+            // Search street, name, thoroughfare if postal code was not in postalCode field
+            if (detectedPostal.isEmpty) {
+              for (final field in [place.street, place.name, place.thoroughfare]) {
+                if (field != null) {
+                  final match = RegExp(r'\b500\d{3}\b|\b[1-9][0-9]{5}\b').firstMatch(field);
+                  if (match != null) {
+                    detectedPostal = match.group(0)!;
+                    break;
+                  }
+                }
+              }
+            }
           }
-          if (subLocality.isNotEmpty && _areaController.text.isEmpty) {
-            _areaController.text = subLocality;
+
+          if (detectedArea.isEmpty) {
+            final first = placemarks.first;
+            detectedArea = first.subLocality ?? first.locality ?? first.name ?? '';
+            if (detectedArea == 'Hyderabad') detectedArea = '';
           }
-          if (postal.isNotEmpty && _pincodeController.text.isEmpty) {
-            _pincodeController.text = postal;
+
+          // Autofill area and pincode only per requirement
+          if (detectedArea.isNotEmpty) {
+            _areaController.text = detectedArea;
+          }
+          if (detectedPostal.isNotEmpty) {
+            _pincodeController.text = detectedPostal;
+          }
+
+          // 1st line address is left for the doctor to mention; clear legacy default text if present
+          if (_addressLineController.text.trim() == 'Hyderabad, Telangana' ||
+              _addressLineController.text.trim() == 'Hyderabad') {
+            _addressLineController.clear();
           }
 
           // Validate if location is in Hyderabad area
           final config = ref.read(bookingConfigProvider).value ?? BookingConfigModel.defaultConfig();
-          final isValidPincode = config.serviceablePincodePrefixes.any((prefix) => postal.startsWith(prefix));
-          if (postal.isNotEmpty && !isValidPincode) {
+          final isValidPincode = detectedPostal.isEmpty ||
+              config.serviceablePincodePrefixes.any((prefix) => detectedPostal.startsWith(prefix));
+          if (detectedPostal.isNotEmpty && !isValidPincode) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Detected location appears to be outside our serviceable area. We currently serve Hyderabad only.')),
@@ -149,7 +206,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   backgroundColor: AppTheme.successColor,
-                  content: Text('Clinic location detected successfully.'),
+                  content: Text('Area and Pincode detected. Please mention your 1st line clinic address.'),
                 ),
               );
             }
@@ -159,7 +216,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
         // Geocoding error is non-fatal: GPS coords are still saved
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('GPS coordinates captured. Please enter street and pincode details.')),
+            const SnackBar(content: Text('GPS coordinates captured. Please enter your address, area, and pincode.')),
           );
         }
       }

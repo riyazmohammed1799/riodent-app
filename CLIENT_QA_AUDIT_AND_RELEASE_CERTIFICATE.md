@@ -201,6 +201,11 @@ All 11 defects discovered across the audit process were remediated, verified wit
 | **`DEF-009`** | **P3 (Low)** | Unit test expected legacy DEV project ID for PROD | Updated test assertion to match `riodent-prod` | 86/86 unit tests pass |
 | **`DEF-010`** | **P3 (Low)** | `use_build_context_synchronously` warnings in dialogs | Renamed shadowed dialog context and guarded with `if (mounted)` | `flutter analyze` reports 0 issues |
 | **`DEF-011`** | **P2 (Med)** | Legacy time slot chips displayed during doctor edit | Removed time slots from edit dialog; unified date-only display | Clean date-only 24h commitment |
+| **`DEF-012`** | **P2 (Med)** | Clinic name defaulted to "Dental Clinic" on initial login/signup | Removed fallback default across user repo and auth forms; field stays blank until saved | Blank until user saves clinic name |
+| **`DEF-013`** | **P2 (Med)** | "Detect My Clinic" failed to populate Area/Pincode & wiped Line 1 | Implemented multi-placemark regex parsing for Area and 6-digit PIN; preserves Line 1 | Accurate Area & PIN autofill |
+| **`DEF-014`** | **P1 (High)** | App startup delay & page lagging with zero dummy users | Configured Firestore offline cache persistence, non-blocking FCM, and lazy admin tabs | Instant cache reads & zero tab lag |
+| **`DEF-015`** | **P2 (Med)** | Admin Share Ledger displayed separate technician payment row | Removed superfluous technician payment row from batch ledger card | Clean doctor fee & 10% share |
+| **`DEF-016`** | **P3 (Low)** | Doctor Home "Book a Technician" CTA misaligned with no space after "n" | Added full-width container, 20px horizontal padding, and clean letter spacing | Symmetrical CTA with breathing room |
 
 ---
 

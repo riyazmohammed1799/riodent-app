@@ -110,16 +110,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ],
         ),
-        body: IndexedStack(
-          index: _selectedTabIndex,
-          children: [
-            _buildExecutiveDashboardTab(),
-            _buildBookingsTab(),
-            _buildDoctorsTab(),
-            _buildTechniciansTab(),
-            _buildSettingsTab(),
-          ],
-        ),
+        body: switch (_selectedTabIndex) {
+          0 => _buildExecutiveDashboardTab(),
+          1 => _buildBookingsTab(),
+          2 => _buildDoctorsTab(),
+          3 => _buildTechniciansTab(),
+          4 => _buildSettingsTab(),
+          _ => _buildExecutiveDashboardTab(),
+        },
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedTabIndex,
           onTap: (index) => setState(() => _selectedTabIndex = index),
@@ -776,10 +774,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                       ),
                                     ],
                                   ),
-                                  Text(
-                                    'Technician Payment (separate): ₹${b.technicianPaymentAmount.toInt()}',
-                                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                                  ),
                                 ],
                               );
                             },
@@ -1187,7 +1181,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        doc.clinicName?.isNotEmpty == true ? doc.clinicName! : 'Dental Clinic',
+                                        (doc.clinicName != null &&
+                                                doc.clinicName!.trim().isNotEmpty &&
+                                                doc.clinicName != 'Dental Clinic')
+                                            ? doc.clinicName!
+                                            : 'Not Specified',
                                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
                                       ),
                                       const SizedBox(height: 2),

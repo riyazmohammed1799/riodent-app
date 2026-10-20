@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,10 +22,18 @@ void main() async {
     options: env.firebaseOptions,
   );
 
+  // High performance: Enable Firestore offline cache persistence
+  // Ensures instant page transitions and eliminates network lag on every page
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+
   debugPrint('🚀 RioDent started in [${env.label}] mode -> Project: ${env.firebaseProjectId}');
 
-  // Initialize FCM push notification service (permissions, background handler, console campaigns)
-  await FcmService.initialize();
+  // Non-blocking FCM push notification initialization:
+  // Runs in the background without blocking initial app render and UI interactivity
+  unawaited(FcmService.initialize());
 
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
