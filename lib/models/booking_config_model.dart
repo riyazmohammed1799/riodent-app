@@ -43,10 +43,12 @@ class IssueTypeItem {
       case 'autoclave':
         return 'assets/images/equipment/autoclave.jpg';
       case 'xray_rvg':
+      case 'rvg':
         return 'assets/images/equipment/xray_rvg.jpg';
       case 'air_compressor':
         return 'assets/images/equipment/air_compressor.jpg';
       case 'handpieces':
+      case 'airotor':
         return 'assets/images/equipment/handpieces.jpg';
       case 'suction_piping':
         return 'assets/images/equipment/suction_piping.jpg';
@@ -76,9 +78,9 @@ class IssueTypeItem {
   static const List<Map<String, String>> availableEquipmentImages = [
     {'name': 'Dental Chair', 'path': 'assets/images/equipment/dental_chair.jpg'},
     {'name': 'Autoclave', 'path': 'assets/images/equipment/autoclave.jpg'},
-    {'name': 'X-Ray & RVG', 'path': 'assets/images/equipment/xray_rvg.jpg'},
+    {'name': 'X-Ray & RVG Sensor', 'path': 'assets/images/equipment/xray_rvg.jpg'},
     {'name': 'Air Compressor', 'path': 'assets/images/equipment/air_compressor.jpg'},
-    {'name': 'Handpieces & Micromotors', 'path': 'assets/images/equipment/handpieces.jpg'},
+    {'name': 'Airotor & Handpieces', 'path': 'assets/images/equipment/handpieces.jpg'},
     {'name': 'Suction & Piping', 'path': 'assets/images/equipment/suction_piping.jpg'},
     {'name': 'Scalers & Light Cure', 'path': 'assets/images/equipment/scalers_lightcure.jpg'},
     {'name': 'Intraoral Scanner', 'path': 'assets/images/equipment/intraoral_scanner.jpg'},
