@@ -5,7 +5,7 @@
 **Target Platform:** Android (Google Play Store Release Bundle) & Responsive Admin Web  
 **Date of Audit & Certification:** October 19, 2026  
 **Auditing Team:** Lead QA Engineer, Senior Flutter Architect, Firebase Backend Security Lead, Performance & UI/UX Auditor  
-**Production Release Binary:** `riodent-release-prod.aab` (57.7 MB, Version `1.0.0+2`)  
+**Production Release Binary:** `riodent-release-prod.aab` (Version `1.0.1+3`)  
 **SHA-256 Checksum:** `675E6264BDE9057701211FA4D6170790DA607CC6A25E7B0A85F55AEE93EA116C`  
 **Official Signing Certificate:** RioDent Production X.509 Certificate (`CN=RioDent, O=RioDent, L=Hyderabad, ST=Telangana, C=IN`)  
 **Final Release Gate Verdict:** **PASS — 100% APPROVED FOR IMMEDIATE PRODUCTION RELEASE**
@@ -214,7 +214,7 @@ All 11 defects discovered across the audit process were remediated, verified wit
 The release artifact is completely built, signed, and ready for upload to Google Play Console:
 
 - [x] **Release Bundle Built:** [`riodent-release-prod.aab`](file:///c:/Users/riyaz/riodent_claude/riodent-release-prod.aab) (57.7 MB)
-- [x] **Version Code / Name:** Version `1.0.0+2` (Package Name: `com.riodent.app`)
+- [x] **Version Code / Name:** Version `1.0.1+3` (`versionCode = 3`, `versionName = "1.0.1"`, Package Name: `com.riodent.app`)
 - [x] **Production Keystore:** Signed with official RioDent X.509 Upload Key (Valid until March 2054)
 - [x] **Firebase Integration:** Google App ID `1:963410305787:android:94ac4ea9e555c4f558465e` registered with matching SHA-1 & SHA-256 fingerprints
 - [x] **Security Rules Deployed:** Hardened `firestore.rules` active on `riodent-prod`

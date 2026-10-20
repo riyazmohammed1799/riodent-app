@@ -281,7 +281,7 @@ flutter test
 ## 📋 Google Play Store Publishing Checklist
 
 * [x] **Application ID**: `com.riodent.riodent`
-* [x] **Version**: `1.0.0+2` (`versionCode = 2`, `versionName = "1.0.0"`)
+* [x] **Version**: `1.0.1+3` (`versionCode = 3`, `versionName = "1.0.1"`)
 * [x] **Compile SDK / Target SDK**: Android 16 (API 36) | **Min SDK**: Android 7.0 (API 24)
 * [x] **Release Signing**: Signed with official X.509 RioDent upload certificate
 * [x] **Production Backend**: Dedicated `riodent-prod` in `asia-south1 (Mumbai)`

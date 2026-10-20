@@ -3,7 +3,7 @@
 **Project:** RioDent - Dental Technician Booking Platform  
 **Repository:** `riyazmohammed1799/riodent-app` (`c:\Users\riyaz\riodent_claude`)  
 **Package Name:** `com.riodent.riodent`  
-**Current App Version:** `1.0.0+2` (`versionCode = 2`, `versionName = "1.0.0"`)  
+**Current App Version:** `1.0.1+3` (`versionCode = 3`, `versionName = "1.0.1"`)  
 **Lead Engineer / Admin:** `riyaz.mohammed1799@gmail.com`  
 **Date of Record:** October 19, 2026  
 

@@ -2,7 +2,7 @@
 
 **Document Title:** RioDent Dental Equipment Maintenance & Technician Dispatch Platform  
 **Target Audience:** Dental Clinic Owners, Investors, Franchise Partners, Operations Teams, & Technical Stakeholders  
-**Product Version:** `1.0.0+2` (Production Ready)  
+**Product Version:** `1.0.1+3` (Production Ready)  
 **Author:** RioDent Engineering & Product Architecture Team  
 **Date:** October 2026  
 
@@ -419,7 +419,7 @@ The RioDent application is fully compiled, signed, and production-deployed:
 | :--- | :--- |
 | **Google Play App Bundle** | [`riodent-release-prod.aab`](file:///c:/Users/riyaz/riodent_claude/riodent-release-prod.aab) (58.25 MB) |
 | **Application Package ID** | `com.riodent.riodent` |
-| **Version & Build** | Version `1.0.0`, Build `2` (`pubspec.yaml`: `1.0.0+2`) |
+| **Version & Build** | Version `1.0.1`, Build `3` (`pubspec.yaml`: `1.0.1+3`) |
 | **Target SDK** | Android 16 (API 36) — compliant with Google Play 2026/2027 requirements. |
 | **Production Firebase Target**| **`riodent-prod`** (`963410305787`) |
 | **Database Location** | **`asia-south1` (Mumbai, India)** — Low-latency Indian cloud hosting. |
