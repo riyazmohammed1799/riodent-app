@@ -360,9 +360,30 @@ class DentistHomeScreen extends ConsumerWidget {
               ),
 
               // Quick Equipment Selection (from config.activeIssueTypes)
-              Text(
-                'Request by Equipment Category',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Request by Equipment Category',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${config.activeIssueTypes.length} types',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.blueGreyAccent,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -374,42 +395,118 @@ class DentistHomeScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.25,
+                  childAspectRatio: 0.85,
                 ),
                 itemBuilder: (context, index) {
                   final cat = config.activeIssueTypes[index];
                   final icon = _getCategoryIcon(cat.code);
 
                   return InkWell(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    borderRadius: BorderRadius.circular(14),
                     onTap: () {
                       context.push('/dentist/book', extra: {'category': cat.code});
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: AppTheme.cardBorderColor),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            color: const Color(0x0C0F172A),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Icon(icon, color: AppTheme.primaryColor, size: 26),
-                          const SizedBox(height: 8),
-                          Text(
-                            cat.label,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          // Equipment Photo Preview
+                          Expanded(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.asset(
+                                  cat.effectiveImageAsset,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppTheme.primaryLight,
+                                      child: Center(
+                                        child: Icon(icon, color: AppTheme.primaryColor, size: 36),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                // Soft gradient at the bottom edge of image
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  height: 24,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: [
+                                          Colors.black.withValues(alpha: 0.15),
+                                          Colors.transparent,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Equipment Label & Action Indicator
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  cat.label,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: AppTheme.textPrimary,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Book Service',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0284C7),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 11,
+                                        color: Color(0xFF0284C7),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

@@ -40,6 +40,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _pincodesController = TextEditingController();
   final _maxDaysController = TextEditingController();
   final _maxOpenRequestsController = TextEditingController();
+  String _newCategoryImageAsset = 'assets/images/equipment/other.jpg';
   bool _isSettingsInitialized = false;
   bool _isSavingSettings = false;
 
@@ -1817,6 +1818,104 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     _isSettingsInitialized = true;
   }
 
+  Future<String?> _pickEquipmentImage(BuildContext context, String currentAsset) async {
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Select Equipment Photo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: GridView.builder(
+              shrinkWrap: true,
+              itemCount: IssueTypeItem.availableEquipmentImages.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.95,
+              ),
+              itemBuilder: (context, idx) {
+                final item = IssueTypeItem.availableEquipmentImages[idx];
+                final path = item['path']!;
+                final name = item['name']!;
+                final isSelected = path == currentAsset;
+
+                return InkWell(
+                  onTap: () => Navigator.of(ctx).pop(path),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFFE0F2FE) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF0284C7) : AppTheme.cardBorderColor,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.asset(
+                                path,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Center(
+                                  child: Icon(Icons.build_rounded, size: 24, color: AppTheme.primaryColor),
+                                ),
+                              ),
+                              if (isSelected)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF0284C7),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              color: isSelected ? const Color(0xFF0284C7) : AppTheme.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _addCategory(BookingConfigModel config) async {
     final label = _newCategoryController.text.trim();
     if (label.isEmpty) return;
@@ -1830,7 +1929,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     final updatedCategories = List<IssueTypeItem>.from(config.issueTypes)
-      ..add(IssueTypeItem(code: code, label: label, active: true));
+      ..add(IssueTypeItem(
+        code: code,
+        label: label,
+        active: true,
+        imageAsset: _newCategoryImageAsset,
+      ));
 
     final updatedConfig = config.copyWith(
       issueTypes: updatedCategories,
@@ -1841,6 +1945,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       await ref.read(settingsRepositoryProvider).updateBookingConfig(updatedConfig);
       ref.invalidate(bookingConfigProvider);
       _newCategoryController.clear();
+      setState(() => _newCategoryImageAsset = 'assets/images/equipment/other.jpg');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(backgroundColor: AppTheme.successColor, content: Text('Added category "$label"')),
@@ -1854,7 +1959,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Future<void> _toggleCategoryActive(BookingConfigModel config, int index, bool active) async {
     final updatedCategories = List<IssueTypeItem>.from(config.issueTypes);
     final current = updatedCategories[index];
-    updatedCategories[index] = IssueTypeItem(code: current.code, label: current.label, active: active);
+    updatedCategories[index] = IssueTypeItem(
+      code: current.code,
+      label: current.label,
+      active: active,
+      imageAsset: current.imageAsset,
+    );
 
     final updatedConfig = config.copyWith(
       issueTypes: updatedCategories,
@@ -1865,31 +1975,101 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     ref.invalidate(bookingConfigProvider);
   }
 
-  Future<void> _renameCategory(BookingConfigModel config, int index) async {
+  Future<void> _editCategory(BookingConfigModel config, int index) async {
     final cat = config.issueTypes[index];
     final renameController = TextEditingController(text: cat.label);
+    String selectedImage = cat.effectiveImageAsset;
 
-    final newName = await showDialog<String>(
+    final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rename Equipment Category'),
-        content: TextField(
-          controller: renameController,
-          decoration: const InputDecoration(labelText: 'Category Name'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(renameController.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Equipment Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: renameController,
+                      decoration: const InputDecoration(labelText: 'Category Name'),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Equipment Photo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await _pickEquipmentImage(context, selectedImage);
+                        if (picked != null) {
+                          setDialogState(() => selectedImage = picked);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.asset(
+                                selectedImage,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.build_rounded, size: 24),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Tap to Change Photo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  Text('Select from equipment catalog', style: TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppTheme.blueGreyAccent),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () {
+                    final label = renameController.text.trim();
+                    if (label.isEmpty) return;
+                    Navigator.of(ctx).pop({'label': label, 'image': selectedImage});
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
-    if (newName != null && newName.isNotEmpty && newName != cat.label) {
+    if (result != null &&
+        (result['label'] != cat.label || result['image'] != cat.effectiveImageAsset)) {
       final updatedCategories = List<IssueTypeItem>.from(config.issueTypes);
-      updatedCategories[index] = IssueTypeItem(code: cat.code, label: newName, active: cat.active);
+      updatedCategories[index] = IssueTypeItem(
+        code: cat.code,
+        label: result['label']!,
+        active: cat.active,
+        imageAsset: result['image']!,
+      );
 
       final updatedConfig = config.copyWith(
         issueTypes: updatedCategories,
@@ -1900,7 +2080,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       ref.invalidate(bookingConfigProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: AppTheme.successColor, content: Text('Renamed to "$newName"')),
+          SnackBar(backgroundColor: AppTheme.successColor, content: Text('Updated "${result['label']}"')),
         );
       }
     }
@@ -2002,21 +2182,67 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Add New Category Input with Suffix Action
-                  TextField(
-                    controller: _newCategoryController,
-                    decoration: InputDecoration(
-                      labelText: 'New Equipment Category *',
-                      hintText: 'e.g. Autoclaves, X-Ray Units',
-                      prefixIcon: const Icon(Icons.add_box_rounded),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.add_circle_rounded, color: AppTheme.primaryColor),
-                        tooltip: 'Add Category',
-                        onPressed: () => _addCategory(config),
+                  // Add New Category Input with Photo Selector and Add Action
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () async {
+                          final picked = await _pickEquipmentImage(context, _newCategoryImageAsset);
+                          if (picked != null) {
+                            setState(() => _newCategoryImageAsset = picked);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Tooltip(
+                          message: 'Choose Equipment Photo',
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.asset(
+                                  _newCategoryImageAsset,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.build_rounded, size: 20),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    color: Colors.black54,
+                                    child: const Icon(Icons.photo_camera, size: 10, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    onSubmitted: (_) => _addCategory(config),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _newCategoryController,
+                          decoration: InputDecoration(
+                            labelText: 'New Equipment Category *',
+                            hintText: 'e.g. Autoclaves, X-Ray Units',
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.add_circle_rounded, color: AppTheme.primaryColor),
+                              tooltip: 'Add Category',
+                              onPressed: () => _addCategory(config),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          onSubmitted: (_) => _addCategory(config),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   const Divider(height: 1),
@@ -2033,13 +2259,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       return ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: cat.active ? AppTheme.primaryLight : const Color(0xFFF3F4F6),
-                          child: Icon(
-                            Icons.handyman_rounded,
-                            size: 16,
-                            color: cat.active ? AppTheme.primaryColor : AppTheme.textHint,
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            cat.effectiveImageAsset,
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                              radius: 19,
+                              backgroundColor: cat.active ? AppTheme.primaryLight : const Color(0xFFF3F4F6),
+                              child: Icon(
+                                Icons.handyman_rounded,
+                                size: 16,
+                                color: cat.active ? AppTheme.primaryColor : AppTheme.textHint,
+                              ),
+                            ),
                           ),
                         ),
                         title: Text(
@@ -2060,8 +2295,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit_outlined, size: 18),
-                              tooltip: 'Rename',
-                              onPressed: () => _renameCategory(config, index),
+                              tooltip: 'Edit Category & Image',
+                              onPressed: () => _editCategory(config, index),
                             ),
                             Switch(
                               value: cat.active,

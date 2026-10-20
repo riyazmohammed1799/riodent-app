@@ -15,16 +15,20 @@ class AppTheme {
 
   // ── Brand Colors ──────────────────────────────────────────────
   static const Color primaryColor = Color(0xFF0F4C81);
-  static const Color primaryLight = Color(0xFFEBF3FA);
+  static const Color primaryLight = Color(0xFFE8F1F8);
   static const Color primaryDark = Color(0xFF0A2E52);
 
   static const Color secondaryColor = Color(0xFF00A896);
   static const Color secondaryLight = Color(0xFFE0F7F5);
   static const Color secondaryDark = Color(0xFF028071);
 
-  static const Color backgroundColor = Color(0xFFF8FAFC);
+  // ── Light Blue-Grey Medical Palette ─────────────────────────────
+  static const Color backgroundColor = Color(0xFFF1F5F9); // Crisp Light Blue-Grey (Slate 100)
   static const Color surfaceColor = Color(0xFFFFFFFF);
-  static const Color cardBorderColor = Color(0xFFE2E8F0);
+  static const Color cardBorderColor = Color(0xFFCBD5E1); // Slate 300 / Blue-Grey border
+  static const Color blueGreySubtle = Color(0xFFE2E8F0);  // Slate 200
+  static const Color blueGreySurface = Color(0xFFF8FAFC); // Slate 50
+  static const Color blueGreyAccent = Color(0xFF64748B);  // Slate 500
 
   static const Color errorColor = Color(0xFFDC2626);
   static const Color successColor = Color(0xFF10B981);

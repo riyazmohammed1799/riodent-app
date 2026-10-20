@@ -138,7 +138,31 @@ class _EditRequestDialogState extends ConsumerState<EditRequestDialog> {
                   decoration: const InputDecoration(
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                   ),
-                  items: categories.map((c) => DropdownMenuItem(value: c.code, child: Text(c.label))).toList(),
+                  items: categories.map((c) => DropdownMenuItem(
+                    value: c.code,
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: Image.asset(
+                            c.effectiveImageAsset,
+                            width: 22,
+                            height: 22,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.build_rounded,
+                              size: 16,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(c.label, overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
+                  )).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => _selectedCategoryCode = val);
                   },

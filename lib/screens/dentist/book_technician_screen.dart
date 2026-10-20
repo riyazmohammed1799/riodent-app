@@ -368,10 +368,86 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                       const SizedBox(height: 8),
 
                       if (availableCategories.isEmpty) ...[
-                        const Text('No equipment categories currently available. Please contact support.',
-                            style: TextStyle(color: AppTheme.errorColor)),
+                        const Text(
+                          'No equipment categories currently available. Please contact support.',
+                          style: TextStyle(color: AppTheme.errorColor),
+                        ),
                       ] else ...[
+                        // Visual Equipment Quick-Picker Carousel
+                        SizedBox(
+                          height: 82,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: availableCategories.length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 8),
+                            itemBuilder: (context, idx) {
+                              final cat = availableCategories[idx];
+                              final isSelected = _selectedIssueCode == cat.code;
+                              return InkWell(
+                                onTap: () => setState(() => _selectedIssueCode = cat.code),
+                                borderRadius: BorderRadius.circular(10),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 88,
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFE0F2FE) : Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF0284C7) : AppTheme.cardBorderColor,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Image.asset(
+                                          cat.effectiveImageAsset,
+                                          width: 38,
+                                          height: 38,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => const Icon(
+                                            Icons.build_rounded,
+                                            size: 24,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        cat.label,
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                          color: isSelected ? const Color(0xFF0284C7) : AppTheme.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Dropdown with equipment image thumbnails
                         DropdownButtonFormField<String>(
+                          key: ValueKey(_selectedIssueCode),
                           initialValue: _selectedIssueCode,
                           isExpanded: true,
                           decoration: const InputDecoration(
@@ -381,7 +457,32 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                           items: availableCategories.map((item) {
                             return DropdownMenuItem<String>(
                               value: item.code,
-                              child: Text(item.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.asset(
+                                      item.effectiveImageAsset,
+                                      width: 24,
+                                      height: 24,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => const Icon(
+                                        Icons.build_rounded,
+                                        size: 16,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      item.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -389,6 +490,89 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                           },
                           validator: (val) => val == null ? 'Please select equipment' : null,
                         ),
+
+                        // Selected equipment preview highlight banner
+                        if (_selectedIssueCode != null) ...[
+                          Builder(
+                            builder: (context) {
+                              final sel = availableCategories
+                                  .where((c) => c.code == _selectedIssueCode)
+                                  .firstOrNull;
+                              if (sel == null) return const SizedBox.shrink();
+
+                              return Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.asset(
+                                        sel.effectiveImageAsset,
+                                        width: 48,
+                                        height: 48,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) => const Icon(
+                                          Icons.build_rounded,
+                                          size: 24,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFE0F2FE),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Text(
+                                                  'SELECTED FOR SERVICE',
+                                                  style: TextStyle(
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF0284C7),
+                                                    letterSpacing: 0.3,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              const Icon(
+                                                Icons.check_circle_rounded,
+                                                size: 16,
+                                                color: Color(0xFF10B981),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            sel.label,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ],
 
                       const SizedBox(height: 16),

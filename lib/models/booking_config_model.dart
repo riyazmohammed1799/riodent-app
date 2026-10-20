@@ -5,11 +5,13 @@ class IssueTypeItem {
   final String code;
   final String label;
   final bool active;
+  final String? imageAsset;
 
   const IssueTypeItem({
     required this.code,
     required this.label,
     this.active = true,
+    this.imageAsset,
   });
 
   factory IssueTypeItem.fromMap(Map<String, dynamic> map) {
@@ -17,16 +19,73 @@ class IssueTypeItem {
       code: map['code'] as String? ?? '',
       label: map['label'] as String? ?? '',
       active: map['active'] as bool? ?? true,
+      imageAsset: map['imageAsset'] as String?,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = <String, dynamic>{
       'code': code,
       'label': label,
       'active': active,
     };
+    if (imageAsset != null && imageAsset!.isNotEmpty) {
+      map['imageAsset'] = imageAsset;
+    }
+    return map;
   }
+
+  /// Default asset fallback by equipment code
+  static String defaultImageAssetForCode(String code) {
+    switch (code) {
+      case 'dental_chair':
+        return 'assets/images/equipment/dental_chair.jpg';
+      case 'autoclave':
+        return 'assets/images/equipment/autoclave.jpg';
+      case 'xray_rvg':
+        return 'assets/images/equipment/xray_rvg.jpg';
+      case 'air_compressor':
+        return 'assets/images/equipment/air_compressor.jpg';
+      case 'handpieces':
+        return 'assets/images/equipment/handpieces.jpg';
+      case 'suction_piping':
+        return 'assets/images/equipment/suction_piping.jpg';
+      case 'scalers_lightcure':
+        return 'assets/images/equipment/scalers_lightcure.jpg';
+      case 'intraoral_scanner':
+        return 'assets/images/equipment/intraoral_scanner.jpg';
+      case 'dental_laser':
+        return 'assets/images/equipment/dental_laser.jpg';
+      case 'endomotor':
+        return 'assets/images/equipment/endomotor.jpg';
+      case 'other':
+      default:
+        return 'assets/images/equipment/other.jpg';
+    }
+  }
+
+  /// Resolves the effective image asset path, falling back to default mapping if null or empty.
+  String get effectiveImageAsset {
+    if (imageAsset != null && imageAsset!.trim().isNotEmpty) {
+      return imageAsset!;
+    }
+    return defaultImageAssetForCode(code);
+  }
+
+  /// Available equipment image presets for Admin Settings category creation/editing.
+  static const List<Map<String, String>> availableEquipmentImages = [
+    {'name': 'Dental Chair', 'path': 'assets/images/equipment/dental_chair.jpg'},
+    {'name': 'Autoclave', 'path': 'assets/images/equipment/autoclave.jpg'},
+    {'name': 'X-Ray & RVG', 'path': 'assets/images/equipment/xray_rvg.jpg'},
+    {'name': 'Air Compressor', 'path': 'assets/images/equipment/air_compressor.jpg'},
+    {'name': 'Handpieces & Micromotors', 'path': 'assets/images/equipment/handpieces.jpg'},
+    {'name': 'Suction & Piping', 'path': 'assets/images/equipment/suction_piping.jpg'},
+    {'name': 'Scalers & Light Cure', 'path': 'assets/images/equipment/scalers_lightcure.jpg'},
+    {'name': 'Intraoral Scanner', 'path': 'assets/images/equipment/intraoral_scanner.jpg'},
+    {'name': 'Dental Laser', 'path': 'assets/images/equipment/dental_laser.jpg'},
+    {'name': 'Endomotor & Apex Locator', 'path': 'assets/images/equipment/endomotor.jpg'},
+    {'name': 'General Maintenance / Other', 'path': 'assets/images/equipment/other.jpg'},
+  ];
 
   /// Deduplicates a list of issue types preserving first-seen order for each unique code.
   static List<IssueTypeItem> deduplicateByCode(List<IssueTypeItem> items) {
