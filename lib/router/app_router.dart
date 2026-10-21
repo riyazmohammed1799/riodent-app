@@ -66,14 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
         return null;
       } else {
-        // Doctor: if profile was deleted, route to login immediately
-        final profileAsync = ref.read(currentUserProfileProvider);
-        if (!profileAsync.isLoading && profileAsync.value == null && loc.startsWith('/dentist')) {
-          authRepo.signOut();
-          return '/login';
-        }
-
-        // Doctor: cannot open admin routes; registration goes straight to /dentist
+        // Doctor: cannot open admin routes; registration & sign-in proceed cleanly to /dentist
         final isRestrictedForDoctor = loc == '/splash' ||
             loc == '/login' ||
             loc.startsWith('/admin') ||

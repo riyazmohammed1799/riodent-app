@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../firebase_options.dart';
 import '../firebase_options_prod.dart';
 
@@ -15,13 +16,22 @@ enum Environment {
   prod;
 
   /// Resolves the current environment from the build-time dart-define.
-  /// Defaults to [Environment.dev] if not specified.
+  /// On web, dynamically detects riodent-prod domain when no explicit flag is set.
   static Environment get current {
-    const envString = String.fromEnvironment('ENV', defaultValue: 'dev');
-    return Environment.values.firstWhere(
-      (e) => e.name == envString.toLowerCase(),
-      orElse: () => Environment.dev,
-    );
+    const envString = String.fromEnvironment('ENV', defaultValue: '');
+    if (envString.isNotEmpty) {
+      return Environment.values.firstWhere(
+        (e) => e.name == envString.toLowerCase(),
+        orElse: () => Environment.dev,
+      );
+    }
+    if (kIsWeb) {
+      final host = Uri.base.host.toLowerCase();
+      if (host.contains('riodent-prod')) {
+        return Environment.prod;
+      }
+    }
+    return Environment.dev;
   }
 
   /// Human-readable label for display in debug UI or console.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/request_providers.dart';
 import '../../providers/settings_providers.dart';
@@ -268,8 +269,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         leading: BackButton(
           onPressed: () {
             final authUser = ref.read(authRepositoryProvider).currentUser;
-            final profile = ref.read(currentUserProfileProvider).value;
-            if (authUser == null || profile == null) {
+            if (authUser == null) {
               context.go('/login');
               return;
             }
@@ -294,8 +294,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
           final authUser = ref.read(authRepositoryProvider).currentUser;
-          final profile = ref.read(currentUserProfileProvider).value;
-          if (authUser == null || profile == null) {
+          if (authUser == null) {
             context.go('/login');
             return;
           }
@@ -308,8 +307,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error loading profile: $err')),
-        data: (user) {
-          if (user == null) {
+        data: (rawUser) {
+          final authUser = ref.read(authRepositoryProvider).currentUser;
+          if (authUser == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) {
                 try {
@@ -319,6 +319,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             });
             return const Center(child: CircularProgressIndicator());
           }
+
+          final user = rawUser ?? UserModel(
+            uid: authUser.uid,
+            displayName: authUser.displayName?.trim().isNotEmpty == true
+                ? authUser.displayName!.trim()
+                : 'Doctor',
+            phone: authUser.phoneNumber ?? '',
+            email: authUser.email,
+            clinicName: '',
+            clinicAddress: '',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
 
           final allRequests = requestsAsync.value ?? [];
           final totalCount = allRequests.length;

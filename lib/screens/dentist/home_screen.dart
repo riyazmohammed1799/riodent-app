@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../models/booking_config_model.dart';
 import '../../models/technician_request_model.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/request_providers.dart';
 import '../../providers/settings_providers.dart';
@@ -27,10 +28,22 @@ class DentistHomeScreen extends ConsumerWidget {
     final requestsAsync = ref.watch(dentistRequestsProvider);
     final configAsync = ref.watch(bookingConfigProvider);
     final config = configAsync.value ?? BookingConfigModel.defaultConfig();
-    final dentist = userAsync.value;
+    final authUser = ref.watch(authRepositoryProvider).currentUser;
 
-    // Guard: strictly block unauthenticated or deleted accounts from viewing the home screen
-    if (!userAsync.isLoading && dentist == null) {
+    final profile = userAsync.value;
+
+    // While initial user profile stream is loading, display loading spinner
+    if (userAsync.isLoading) {
+      return const Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Guard: block unauthenticated or deleted users from viewing the home screen
+    if (profile == null && authUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           try {
@@ -45,6 +58,19 @@ class DentistHomeScreen extends ConsumerWidget {
         ),
       );
     }
+
+    final dentist = profile ?? UserModel(
+      uid: authUser?.uid ?? '',
+      displayName: authUser?.displayName?.trim().isNotEmpty == true
+          ? authUser!.displayName!.trim()
+          : 'Doctor',
+      phone: authUser?.phoneNumber ?? '',
+      email: authUser?.email,
+      clinicName: '',
+      clinicAddress: '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -73,14 +99,15 @@ class DentistHomeScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    dentist?.displayName.isNotEmpty == true
-                        ? 'Dr. ${dentist!.displayName}'
+                    dentist.displayName.isNotEmpty
+                        ? 'Dr. ${dentist.displayName}'
                         : AppConstants.appName,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (dentist?.clinicName?.isNotEmpty == true &&
-                      dentist!.clinicName != 'Dental Clinic')
+                  if (dentist.clinicName != null &&
+                      dentist.clinicName!.isNotEmpty &&
+                      dentist.clinicName != 'Dental Clinic')
                     Text(
                       dentist.clinicName!,
                       style: const TextStyle(
@@ -96,7 +123,7 @@ class DentistHomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          if (dentist?.email?.toLowerCase().trim() == 'riyaz.mohammed1799@gmail.com')
+          if (dentist.email?.toLowerCase().trim() == 'riyaz.mohammed1799@gmail.com')
             IconButton(
               icon: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryColor),
               tooltip: 'Admin Dashboard',
@@ -162,8 +189,8 @@ class DentistHomeScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                dentist?.displayName.isNotEmpty == true
-                                    ? (dentist!.displayName.toLowerCase().startsWith('dr')
+                                dentist.displayName.isNotEmpty
+                                    ? (dentist.displayName.toLowerCase().startsWith('dr')
                                         ? dentist.displayName
                                         : 'Dr. ${dentist.displayName}')
                                     : 'Doctor',
