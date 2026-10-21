@@ -28,16 +28,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: authNotifier,
     redirect: (context, state) {
+      final authRepo = ref.read(authRepositoryProvider);
       final authAsync = ref.read(authStateProvider);
       final adminClaimAsync = ref.read(adminClaimProvider);
 
       final isAuthLoading = authAsync.isLoading;
-      final user = authAsync.value;
+      final currentAuthUser = authRepo.currentUser;
+      final user = currentAuthUser == null ? null : (authAsync.value ?? currentAuthUser);
 
       final loc = state.uri.path;
 
       // 1. Initializing auth state -> stay on /splash
-      if (isAuthLoading) {
+      if (isAuthLoading && currentAuthUser == null) {
         return loc == '/splash' ? null : '/splash';
       }
 
@@ -64,6 +66,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
         return null;
       } else {
+        // Doctor: if profile was deleted, route to login immediately
+        final profileAsync = ref.read(currentUserProfileProvider);
+        if (!profileAsync.isLoading && profileAsync.value == null && loc.startsWith('/dentist')) {
+          authRepo.signOut();
+          return '/login';
+        }
+
         // Doctor: cannot open admin routes; registration goes straight to /dentist
         final isRestrictedForDoctor = loc == '/splash' ||
             loc == '/login' ||
@@ -167,5 +176,6 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
     ref.listen(authStateProvider, (_, _) => notifyListeners());
     ref.listen(adminClaimProvider, (_, _) => notifyListeners());
+    ref.listen(currentUserProfileProvider, (_, _) => notifyListeners());
   }
 }

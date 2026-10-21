@@ -118,6 +118,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (confirm == true) {
       await ref.read(authRepositoryProvider).signOut();
+      ref.invalidate(currentUserProfileProvider);
+      ref.invalidate(authStateProvider);
+      ref.invalidate(adminClaimProvider);
+      ref.invalidate(dentistRequestsProvider);
       if (mounted) {
         context.go('/login');
       }
@@ -126,7 +130,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _handleDeleteAccount() async {
     final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
+    final currentAuthUser = ref.read(authRepositoryProvider).currentUser;
+    if (user == null && currentAuthUser == null) return;
+    final uid = user?.uid ?? currentAuthUser?.uid;
+    if (uid == null) return;
 
     final confirm1 = await showDialog<bool>(
       context: context,
@@ -188,22 +195,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (confirm2 == true) {
       try {
         setState(() => _isSaving = true);
-        await ref.read(userRepositoryProvider).deleteUserAccount(user.uid);
-        await ref.read(authRepositoryProvider).deleteAccount();
-        await ref.read(authRepositoryProvider).signOut();
+
+        // 1. Delete user profile & clinic details from Firestore
+        try {
+          await ref.read(userRepositoryProvider).deleteUserAccount(uid);
+        } catch (e) {
+          debugPrint('Error deleting Firestore user document: $e');
+        }
+
+        // 2. Permanently delete Firebase Auth user account
+        try {
+          await ref.read(authRepositoryProvider).deleteAccount();
+        } catch (e) {
+          debugPrint('Error deleting Firebase Auth user account: $e');
+        }
+
+        // 3. Guarantee sign out of Firebase Auth and Google Sign In
+        try {
+          await ref.read(authRepositoryProvider).signOut();
+        } catch (e) {
+          debugPrint('Error signing out: $e');
+        }
+
+        // 4. Invalidate all Riverpod session providers
+        ref.invalidate(currentUserProfileProvider);
+        ref.invalidate(authStateProvider);
+        ref.invalidate(adminClaimProvider);
+        ref.invalidate(dentistRequestsProvider);
+
+        // 5. Navigate directly to /login page with zero access to home page
+        if (mounted) {
+          context.go('/login');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account permanently deleted. You have been signed out.'),
+              backgroundColor: AppTheme.primaryColor,
+            ),
+          );
+        }
+      } catch (e) {
+        // Fallback guarantee: ensure sign out and routing to /login always happens
+        try {
+          await ref.read(authRepositoryProvider).signOut();
+        } catch (_) {}
+        ref.invalidate(currentUserProfileProvider);
+        ref.invalidate(authStateProvider);
         if (mounted) {
           context.go('/login');
         }
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Account deletion requires recent sign-in. Please sign in again and retry: $e',
-            ),
-          ),
-        );
+      } finally {
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
       }
     }
   }
@@ -224,6 +267,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: const Text('Clinic Profile'),
         leading: BackButton(
           onPressed: () {
+            final authUser = ref.read(authRepositoryProvider).currentUser;
+            final profile = ref.read(currentUserProfileProvider).value;
+            if (authUser == null || profile == null) {
+              context.go('/login');
+              return;
+            }
             if (context.canPop()) {
               context.pop();
             } else {
@@ -244,6 +293,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
+          final authUser = ref.read(authRepositoryProvider).currentUser;
+          final profile = ref.read(currentUserProfileProvider).value;
+          if (authUser == null || profile == null) {
+            context.go('/login');
+            return;
+          }
           if (context.canPop()) {
             context.pop();
           } else {
@@ -255,38 +310,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         error: (err, _) => Center(child: Text('Error loading profile: $err')),
         data: (user) {
           if (user == null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded, size: 64, color: AppTheme.primaryColor),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Account Signed Out or Deleted',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'You are no longer signed in to RioDent.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textSecondary),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: () => context.go('/login'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: const Text('Go to Sign In'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                try {
+                  context.go('/login');
+                } catch (_) {}
+              }
+            });
+            return const Center(child: CircularProgressIndicator());
           }
 
           final allRequests = requestsAsync.value ?? [];

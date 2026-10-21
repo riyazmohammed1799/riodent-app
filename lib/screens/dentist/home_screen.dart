@@ -29,6 +29,23 @@ class DentistHomeScreen extends ConsumerWidget {
     final config = configAsync.value ?? BookingConfigModel.defaultConfig();
     final dentist = userAsync.value;
 
+    // Guard: strictly block unauthenticated or deleted accounts from viewing the home screen
+    if (!userAsync.isLoading && dentist == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          try {
+            context.go('/login');
+          } catch (_) {}
+        }
+      });
+      return const Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
