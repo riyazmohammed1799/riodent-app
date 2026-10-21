@@ -47,8 +47,9 @@ class IssueTypeItem {
         return 'assets/images/equipment/xray_rvg.jpg';
       case 'air_compressor':
         return 'assets/images/equipment/air_compressor.jpg';
-      case 'handpieces':
       case 'airotor':
+        return 'assets/images/equipment/airotor.jpg';
+      case 'handpieces':
         return 'assets/images/equipment/handpieces.jpg';
       case 'suction_piping':
         return 'assets/images/equipment/suction_piping.jpg';
@@ -80,7 +81,8 @@ class IssueTypeItem {
     {'name': 'Autoclave', 'path': 'assets/images/equipment/autoclave.jpg'},
     {'name': 'X-Ray & RVG Sensor', 'path': 'assets/images/equipment/xray_rvg.jpg'},
     {'name': 'Air Compressor', 'path': 'assets/images/equipment/air_compressor.jpg'},
-    {'name': 'Airotor & Handpieces', 'path': 'assets/images/equipment/handpieces.jpg'},
+    {'name': 'Airotor Turbine Handpiece', 'path': 'assets/images/equipment/airotor.jpg'},
+    {'name': 'Micromotor & Handpieces', 'path': 'assets/images/equipment/handpieces.jpg'},
     {'name': 'Suction & Piping', 'path': 'assets/images/equipment/suction_piping.jpg'},
     {'name': 'Scalers & Light Cure', 'path': 'assets/images/equipment/scalers_lightcure.jpg'},
     {'name': 'Intraoral Scanner', 'path': 'assets/images/equipment/intraoral_scanner.jpg'},
@@ -216,6 +218,7 @@ class BookingConfigModel {
         const IssueTypeItem(code: 'autoclave', label: 'Autoclave', active: true),
         const IssueTypeItem(code: 'xray_rvg', label: 'X-Ray & RVG', active: true),
         const IssueTypeItem(code: 'air_compressor', label: 'Air Compressor', active: true),
+        const IssueTypeItem(code: 'airotor', label: 'Airotor Handpiece', active: true),
         const IssueTypeItem(code: 'handpieces', label: 'Handpieces & Micromotors', active: true),
         const IssueTypeItem(code: 'suction_piping', label: 'Suction & Piping', active: true),
         const IssueTypeItem(code: 'scalers_lightcure', label: 'Scalers & Light Cure', active: true),

@@ -33,6 +33,8 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
   final _addressLineController = TextEditingController();
   final _landmarkController = TextEditingController();
   final _areaController = TextEditingController();
+  final _cityController = TextEditingController(text: 'Hyderabad');
+  final _stateController = TextEditingController(text: 'Telangana');
   final _pincodeController = TextEditingController();
   final _descriptionController = TextEditingController();
 
@@ -90,6 +92,8 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
     _addressLineController.dispose();
     _landmarkController.dispose();
     _areaController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
     _pincodeController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -129,8 +133,10 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
         if (placemarks.isNotEmpty) {
           String detectedArea = '';
           String detectedPostal = '';
+          String detectedCity = '';
+          String detectedState = '';
 
-          // Iterate all returned placemarks to find the best locality/area and 6-digit pincode
+          // Iterate all returned placemarks to find the best locality/area, city, state and 6-digit pincode
           for (final place in placemarks) {
             if (detectedArea.isEmpty) {
               if (place.subLocality != null && place.subLocality!.trim().isNotEmpty) {
@@ -143,6 +149,20 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                   place.subAdministrativeArea!.trim().isNotEmpty &&
                   place.subAdministrativeArea!.trim() != 'Hyderabad') {
                 detectedArea = place.subAdministrativeArea!.trim();
+              }
+            }
+
+            if (detectedCity.isEmpty) {
+              if (place.locality != null && place.locality!.trim().isNotEmpty) {
+                detectedCity = place.locality!.trim();
+              } else if (place.subAdministrativeArea != null && place.subAdministrativeArea!.trim().isNotEmpty) {
+                detectedCity = place.subAdministrativeArea!.trim();
+              }
+            }
+
+            if (detectedState.isEmpty) {
+              if (place.administrativeArea != null && place.administrativeArea!.trim().isNotEmpty) {
+                detectedState = place.administrativeArea!.trim();
               }
             }
 
@@ -171,25 +191,34 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
             }
           }
 
+          final first = placemarks.first;
           if (detectedArea.isEmpty) {
-            final first = placemarks.first;
             detectedArea = first.subLocality ?? first.locality ?? first.name ?? '';
             if (detectedArea == 'Hyderabad') detectedArea = '';
           }
+          if (detectedCity.isEmpty) {
+            detectedCity = first.locality ?? first.subAdministrativeArea ?? 'Hyderabad';
+          }
+          if (detectedState.isEmpty) {
+            detectedState = first.administrativeArea ?? 'Telangana';
+          }
 
-          // Autofill area and pincode only per requirement
+          // Autofill area, pincode, city, state per requirement
           if (detectedArea.isNotEmpty) {
             _areaController.text = detectedArea;
           }
           if (detectedPostal.isNotEmpty) {
             _pincodeController.text = detectedPostal;
           }
-
-          // 1st line address is left for the doctor to mention; clear legacy default text if present
-          if (_addressLineController.text.trim() == 'Hyderabad, Telangana' ||
-              _addressLineController.text.trim() == 'Hyderabad') {
-            _addressLineController.clear();
+          if (detectedCity.isNotEmpty) {
+            _cityController.text = detectedCity;
           }
+          if (detectedState.isNotEmpty) {
+            _stateController.text = detectedState;
+          }
+
+          // 1st line address is left explicitly empty for the doctor to mention their flat/shop/room/floor
+          _addressLineController.clear();
 
           // Validate if location is in Hyderabad area
           final config = ref.read(bookingConfigProvider).value ?? BookingConfigModel.defaultConfig();
@@ -206,7 +235,7 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   backgroundColor: AppTheme.successColor,
-                  content: Text('Area and Pincode detected. Please mention your 1st line clinic address.'),
+                  content: Text('GPS detected: Pincode, Area, City & State autofilled. Please enter your 1st line address.'),
                 ),
               );
             }
@@ -274,7 +303,8 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
       'addressLine': _addressLineController.text.trim(),
       'landmark': _landmarkController.text.trim(),
       'area': _areaController.text.trim(),
-      'city': 'Hyderabad',
+      'city': _cityController.text.trim().isNotEmpty ? _cityController.text.trim() : 'Hyderabad',
+      'state': _stateController.text.trim().isNotEmpty ? _stateController.text.trim() : 'Telangana',
       'pincode': _pincodeController.text.trim(),
       'lat': _detectedLat ?? 0.0,
       'lng': _detectedLng ?? 0.0,
@@ -645,15 +675,15 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Address Line
+                      // Address Line 1
                       TextFormField(
                         controller: _addressLineController,
                         decoration: const InputDecoration(
-                          labelText: 'Address Line / Building / Floor *',
-                          hintText: 'e.g. Flat 302, Sai Towers, Road No 12',
+                          labelText: 'Address Line 1 / Flat / Building / Room *',
+                          hintText: 'Enter clinic building, door, room or floor no.',
                           prefixIcon: Icon(Icons.home_work_outlined),
                         ),
-                        validator: (val) => Validators.required(val, 'Address line'),
+                        validator: (val) => Validators.required(val, '1st line address'),
                       ),
                       const SizedBox(height: 14),
 
@@ -674,41 +704,54 @@ class _BookTechnicianScreenState extends ConsumerState<BookTechnicianScreen> {
                             child: TextFormField(
                               controller: _areaController,
                               decoration: const InputDecoration(
-                                labelText: 'Locality / Area',
+                                labelText: 'Locality / Area *',
                                 hintText: 'e.g. Banjara Hills',
                               ),
+                              validator: (val) => Validators.required(val, 'Area'),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
 
-                      // City (Hyderabad fixed read-only) & Pincode
+                      // City & State
                       Row(
                         children: [
                           Expanded(
                             child: TextFormField(
-                              initialValue: 'Hyderabad',
-                              readOnly: true,
+                              controller: _cityController,
                               decoration: const InputDecoration(
-                                labelText: 'City',
+                                labelText: 'City *',
                                 prefixIcon: Icon(Icons.location_city_outlined),
                               ),
+                              validator: (val) => Validators.required(val, 'City'),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
-                              controller: _pincodeController,
-                              keyboardType: TextInputType.number,
+                              controller: _stateController,
                               decoration: const InputDecoration(
-                                labelText: 'Pincode *',
-                                hintText: 'e.g. 500034',
+                                labelText: 'State *',
+                                prefixIcon: Icon(Icons.map_outlined),
                               ),
-                              validator: (val) => Validators.pincode(val, config.serviceablePincodePrefixes),
+                              validator: (val) => Validators.required(val, 'State'),
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Pincode
+                      TextFormField(
+                        controller: _pincodeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Pincode *',
+                          hintText: 'e.g. 500034',
+                          prefixIcon: Icon(Icons.pin_drop_outlined),
+                        ),
+                        validator: (val) => Validators.pincode(val, config.serviceablePincodePrefixes),
                       ),
                       const SizedBox(height: 16),
 

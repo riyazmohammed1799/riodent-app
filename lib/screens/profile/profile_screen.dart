@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/validators.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Minimal doctor profile screen with theme switching, service history summary,
 /// clinic profile editing, support desk, and Google Play-compliant account deletion.
@@ -625,7 +626,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           title: const Text('Support Desk'),
                           subtitle: Text(supportPhone),
-                          trailing: const Icon(Icons.phone_in_talk_rounded, size: 18),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryLight,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_in_talk_rounded, size: 16, color: AppTheme.primaryColor),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Call',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onTap: () async {
+                            final cleanPhone = supportPhone.replaceAll(RegExp(r'[^\d+]'), '');
+                            final uri = Uri.parse('tel:$cleanPhone');
+                            try {
+                              final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              if (!launched && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Could not open phone dialer for $supportPhone')),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Could not initiate call: $e')),
+                                );
+                              }
+                            }
+                          },
                         ),
                         const Divider(height: 1),
                         ListTile(
@@ -635,29 +675,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: isDark ? const Color(0xFF38BDF8) : AppTheme.primaryColor,
                           ),
                           title: const Text('Privacy Policy'),
-                          subtitle: const Text('Play Store compliant data safety'),
-                          trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Privacy Policy'),
-                                content: const SingleChildScrollView(
-                                  child: Text(
-                                    'RioDent connects licensed dental clinics with certified dental equipment technicians. '
-                                    'We only collect information required for booking, equipment diagnostics, and technician dispatch. '
-                                    'We do not sell clinic or patient data to third parties. For full policy documentation, visit '
-                                    'https://equip-services-dev.web.app/privacy.',
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                            );
+                          subtitle: const Text('Google Play & DPDP 2023 compliant data safety'),
+                          trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                          onTap: () async {
+                            const privacyUrl = 'https://riodent-prod.web.app/privacy.html';
+                            final uri = Uri.parse(privacyUrl);
+                            try {
+                              final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              if (!launched && context.mounted) {
+                                _showPrivacyDialog(context, isDark);
+                              }
+                            } catch (_) {
+                              if (context.mounted) {
+                                _showPrivacyDialog(context, isDark);
+                              }
+                            }
                           },
                         ),
                       ],
@@ -823,6 +855,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showPrivacyDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('RioDent Privacy Policy'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'RioDent connects licensed dental clinics in Hyderabad with verified dental equipment technicians.\n\n'
+                '• Strict Data Minimization: We only collect doctor name, clinic name, mobile number, and clinic address required to dispatch a technician.\n'
+                '• No Patient Data: We never collect, process, or store patient health records or medical charts.\n'
+                '• Zero Data Selling: We never sell or monetize clinic data.\n'
+                '• DPDP Act 2023 Compliant with Grievance Redressal and in-app account erasure.\n\n'
+                'Official production policy URL:',
+                style: TextStyle(fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () => launchUrl(
+                  Uri.parse('https://riodent-prod.web.app/privacy.html'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child: const Text(
+                  'https://riodent-prod.web.app/privacy.html',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF0284C7),
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+            label: const Text('Open in Browser'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              launchUrl(
+                Uri.parse('https://riodent-prod.web.app/privacy.html'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }

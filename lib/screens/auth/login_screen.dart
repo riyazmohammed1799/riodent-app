@@ -6,6 +6,7 @@ import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Premier unified sign-in and registration screen for dental clinics and doctors.
 /// Per specifications:
@@ -583,6 +584,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
 
                   const SizedBox(height: 16),
+
+                  // Legal & Privacy Policy Link
+                  Center(
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () async {
+                        final uri = Uri.parse('https://riodent-prod.web.app/privacy.html');
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      },
+                      icon: const Icon(Icons.privacy_tip_outlined, size: 14, color: AppTheme.textSecondary),
+                      label: const Text(
+                        'Privacy Policy & DPDP Data Safety',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
                 ],
               ),
             ),

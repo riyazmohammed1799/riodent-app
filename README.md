@@ -281,15 +281,15 @@ flutter test
 ## 📋 Google Play Store Publishing Checklist
 
 * [x] **Application ID**: `com.riodent.riodent`
-* [x] **Version**: `1.0.1+3` (`versionCode = 3`, `versionName = "1.0.1"`)
+* [x] **Version**: `1.0.2+4` (`versionCode = 4`, `versionName = "1.0.2"`)
 * [x] **Compile SDK / Target SDK**: Android 16 (API 36) | **Min SDK**: Android 7.0 (API 24)
 * [x] **Release Signing**: Signed with official X.509 RioDent upload certificate
 * [x] **Production Backend**: Dedicated `riodent-prod` in `asia-south1 (Mumbai)`
 * [x] **App Icon**: `512x512` 32-bit PNG (`assets/playstore/app_icon_512x512.png`)
 * [x] **Feature Graphics**: `1024x500` and `1025x500` PNG (`assets/playstore/feature_graphic_1024x500.png`)
 * [x] **Phone Screenshots**: High-res 9:16 screenshots (`assets/playstore/screenshot_*.png`)
-* [x] **Hosted Privacy Policy**: Live at `https://equip-services-dev.web.app/privacy.html`
-* [x] **Hosted Account Deletion Page**: Live at `https://equip-services-dev.web.app/delete-account.html`
+* [x] **Hosted Privacy Policy**: Live at `https://riodent-prod.web.app/privacy.html`
+* [x] **Hosted Account Deletion Page**: Live at `https://riodent-prod.web.app/delete-account.html`
 * [x] **Zero Layout Overflows**: 18/18 Viewport tests passed (320px, 360px, 412px)
 * [x] **FCM Push Notifications**: Integrated with `@pragma('vm:entry-point')` background isolate handler
 

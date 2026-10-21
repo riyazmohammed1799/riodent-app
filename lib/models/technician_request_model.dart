@@ -7,6 +7,7 @@ class RequestAddress {
   final String? landmark;
   final String? area;
   final String city;
+  final String state;
   final String pincode;
   final double lat;
   final double lng;
@@ -16,6 +17,7 @@ class RequestAddress {
     this.landmark,
     this.area,
     this.city = 'Hyderabad',
+    this.state = 'Telangana',
     required this.pincode,
     this.lat = 0.0,
     this.lng = 0.0,
@@ -27,6 +29,7 @@ class RequestAddress {
       if (landmark != null && landmark!.isNotEmpty) 'Near $landmark',
       if (area != null && area!.isNotEmpty) area,
       city,
+      if (state.isNotEmpty && state.toLowerCase() != city.toLowerCase()) state,
       if (pincode.isNotEmpty) pincode,
     ];
     return parts.where((p) => p != null && p.trim().isNotEmpty).join(', ');
@@ -38,6 +41,7 @@ class RequestAddress {
       landmark: map['landmark'] as String?,
       area: map['area'] as String?,
       city: map['city'] as String? ?? 'Hyderabad',
+      state: map['state'] as String? ?? 'Telangana',
       pincode: map['pincode'] as String? ?? '',
       lat: (map['lat'] as num?)?.toDouble() ?? 0.0,
       lng: (map['lng'] as num?)?.toDouble() ?? 0.0,
@@ -50,6 +54,7 @@ class RequestAddress {
       if (landmark != null && landmark!.isNotEmpty) 'landmark': landmark,
       if (area != null && area!.isNotEmpty) 'area': area,
       'city': city,
+      'state': state,
       'pincode': pincode,
       'lat': lat,
       'lng': lng,

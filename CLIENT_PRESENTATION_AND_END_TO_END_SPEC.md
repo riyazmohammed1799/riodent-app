@@ -2,7 +2,7 @@
 
 **Document Title:** RioDent Dental Equipment Maintenance & Technician Dispatch Platform  
 **Target Audience:** Dental Clinic Owners, Investors, Franchise Partners, Operations Teams, & Technical Stakeholders  
-**Product Version:** `1.0.1+3` (Production Ready)  
+**Product Version:** `1.0.2+4` (Production Ready)  
 **Author:** RioDent Engineering & Product Architecture Team  
 **Date:** October 2026  
 
@@ -204,7 +204,7 @@ Every screen and interactive control in the Doctor Portal has been engineered fo
 | :--- | :--- | :--- | :--- |
 | **Doctor & Clinic Info Card** | Clean card displaying Doctor Name, Clinic Name, Mobile, and Address | Displays registered clinic credentials. | Formatted with proper line breaks; clinic name never truncates. |
 | **Dark / Light Theme Switcher** | Modern animated switch tile with sun/moon icons | Toggles app between RioDent Light Medical Theme and Sleek Surgical Dark Theme. | Persists theme choice locally via SharedPreferences. |
-| **"Privacy Policy" Tile** | Clean list tile with chevron right icon | Opens live DPDP-compliant Privacy Policy dialog with link to `https://equip-services-dev.web.app/privacy.html`. | Validated live URL. |
+| **"Privacy Policy" Tile** | Clean list tile with chevron right icon | Opens live DPDP-compliant Privacy Policy in browser at `https://riodent-prod.web.app/privacy.html`. | Direct system browser launch. |
 | **"Terms of Service" Tile** | Clean list tile with document icon | Displays platform terms, service guarantees, and technician liability bounds. | Readable offline. |
 | **"Sign Out" Button** | Outlined button with logout icon | Clears session credentials from Firebase Auth and routes back to login. | Flushes riverpod state clean. |
 | **"Delete My Account" Button** | Red text button with warning icon | **Google Play Mandatory Compliance**: Prompts doctor with 2-step confirmation; permanently purges user profile from Firebase Auth and Firestore. | **Aligned layout**: Perfectly aligned at the bottom of the profile screen. |
@@ -419,14 +419,14 @@ The RioDent application is fully compiled, signed, and production-deployed:
 | :--- | :--- |
 | **Google Play App Bundle** | [`riodent-release-prod.aab`](file:///c:/Users/riyaz/riodent_claude/riodent-release-prod.aab) (58.25 MB) |
 | **Application Package ID** | `com.riodent.riodent` |
-| **Version & Build** | Version `1.0.1`, Build `3` (`pubspec.yaml`: `1.0.1+3`) |
+| **Version & Build** | Version `1.0.2`, Build `4` (`pubspec.yaml`: `1.0.2+4`) |
 | **Target SDK** | Android 16 (API 36) — compliant with Google Play 2026/2027 requirements. |
 | **Production Firebase Target**| **`riodent-prod`** (`963410305787`) |
 | **Database Location** | **`asia-south1` (Mumbai, India)** — Low-latency Indian cloud hosting. |
 | **Release Signing Key** | Official RioDent Keystore (`CN=RioDent, OU=Mobile, O=RioDent, L=Hyderabad, ST=Telangana, C=IN`) |
 | **Registered Fingerprints** | **SHA-1:** `A9:37:6A:D1:C7:3D:17:95:AB:A8:C1:B2:85:20:A0:10:DD:EB:0B:A6`<br>**SHA-256:** `8E:ED:13:4D:B9:B8:CF:B4:EB:83:26:8F:F8:41:75:1B:F1:36:14:3B:87:17:D6:DE:4E:8E:5F:65:18:96:A7:81` |
 | **FCM Push Notifications** | Fully configured with `@pragma('vm:entry-point')` background isolate handler. |
-| **Data Safety & Privacy** | Live DPDP-compliant Privacy Policy hosted at `https://equip-services-dev.web.app/privacy.html`. |
+| **Data Safety & Privacy** | Live DPDP-compliant Privacy Policy hosted at `https://riodent-prod.web.app/privacy.html`. |
 | **Reviewer Credentials** | Email: `riyaz.mohammed1799@gmail.com` |
 
 ---

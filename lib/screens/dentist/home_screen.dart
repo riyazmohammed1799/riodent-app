@@ -682,8 +682,9 @@ class DentistHomeScreen extends ConsumerWidget {
         return Icons.camera_indoor_rounded;
       case 'air_compressor':
         return Icons.air_rounded;
-      case 'handpieces':
       case 'airotor':
+        return Icons.speed_rounded;
+      case 'handpieces':
         return Icons.precision_manufacturing_rounded;
       case 'suction_piping':
         return Icons.plumbing_rounded;

@@ -56,7 +56,7 @@ Under India's Digital Personal Data Protection Act, 2023, RioDent operates as a 
 2. **Right to Correction / Rectification:** Doctor name, clinic name, mobile number, and addresses can be updated anytime from the Profile screen.
 3. **Right to Erasure / Deletion:**
    - **In-App:** Navigating to `Profile Screen -> Delete My Account` prompts re-authentication and triggers cascading deletion of the user's authentication and profile data.
-   - **Public Web Portal:** Google Play requires a web deletion URL accessible without launching the app. The hosted portal at `https://equip-services-dev.web.app/delete-account.html` allows users to submit account deletion requests processed within 7 business days.
+   - **Public Web Portal:** Google Play requires a web deletion URL accessible without launching the app. The hosted portal at `https://riodent-prod.web.app/delete-account.html` allows users to submit account deletion requests processed within 7 business days.
 4. **Data Retention Policy:**
    - Service request history is retained for up to 1 year solely for regulatory audit, statutory clinic tax documentation, and equipment warranty tracking.
    - Upon confirmed deletion, personal identifiers (email, phone, name) are permanently purged.
@@ -123,6 +123,6 @@ All reads and writes to Firebase Storage are completely blocked.
 ## 6. Public Compliance URLs
 
 The following compliance endpoints are hosted on Firebase Hosting:
-- **Privacy Policy:** `https://equip-services-dev.web.app/privacy.html`
-- **Account Deletion Portal:** `https://equip-services-dev.web.app/delete-account.html`
+- **Privacy Policy:** `https://riodent-prod.web.app/privacy.html`
+- **Account Deletion Portal:** `https://riodent-prod.web.app/delete-account.html`
 - **Support Contact:** `mailto:support@riodent.in`

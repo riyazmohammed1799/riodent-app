@@ -46,6 +46,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
     final landmark = widget.requestData['landmark'] as String?;
     final area = widget.requestData['area'] as String?;
     final city = widget.requestData['city'] as String? ?? 'Hyderabad';
+    final state = widget.requestData['state'] as String? ?? 'Telangana';
     final pincode = widget.requestData['pincode'] as String? ?? '';
     final lat = (widget.requestData['lat'] as num?)?.toDouble() ?? 0.0;
     final lng = (widget.requestData['lng'] as num?)?.toDouble() ?? 0.0;
@@ -70,6 +71,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
       landmark: landmark,
       area: area,
       city: city,
+      state: state,
       pincode: pincode,
       lat: lat,
       lng: lng,
@@ -143,15 +145,18 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
     final pincode = widget.requestData['pincode'] as String? ?? '';
     final issueLabel = widget.requestData['issueLabel'] as String? ?? '';
     final issueDescription = widget.requestData['issueDescription'] as String? ?? '';
+    final city = widget.requestData['city'] as String? ?? 'Hyderabad';
+    final state = widget.requestData['state'] as String? ?? 'Telangana';
     final slotDisplayDate = widget.requestData['slotDisplayDate'] as String? ?? '';
 
     final fullAddressText = [
       addressLine,
       if (landmark != null && landmark.isNotEmpty) 'Near $landmark',
       if (area != null && area.isNotEmpty) area,
-      'Hyderabad',
+      city,
+      if (state.isNotEmpty && state.toLowerCase() != city.toLowerCase()) state,
       if (pincode.isNotEmpty) pincode,
-    ].join(', ');
+    ].where((p) => p.trim().isNotEmpty).join(', ');
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
