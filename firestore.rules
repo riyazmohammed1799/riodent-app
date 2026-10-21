@@ -6,10 +6,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin verified strictly by designated admin email riyaz.mohammed1799@gmail.com
+    // Admin verified by designated admin email, UID, or custom claim
     function isAdmin() {
-      return isAuthenticated()
-        && request.auth.token.email == 'riyaz.mohammed1799@gmail.com';
+      return isAuthenticated() && (
+        request.auth.uid == 'VRSreA9CCWZ4KkJ355dHXmSe0cx2'
+        || (request.auth.token.email != null && request.auth.token.email.lower() == 'riyaz.mohammed1799@gmail.com')
+        || (request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true)
+      );
     }
 
     function isOwner(uid) {
@@ -91,12 +94,9 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
 
-      // Subcollection: events (audit history - restricted to request owner dentist or admin)
+      // Subcollection: events (audit history)
       match /events/{eventId} {
-        allow read, create: if isAuthenticated() && (
-          get(/databases/$(database)/documents/technicianRequests/$(requestId)).data.dentistId == request.auth.uid
-          || isAdmin()
-        );
+        allow read, create: if isAuthenticated();
         allow update, delete: if false;
       }
 
@@ -113,8 +113,8 @@ service cloud.firestore {
 
     // APP SETTINGS collection
     match /appSettings/{document} {
-      // Authenticated users can read booking config
-      allow read: if isAuthenticated();
+      // Authenticated users and guests can read booking config
+      allow read: if true;
       // Only admin can write settings
       allow write: if isAdmin();
     }
