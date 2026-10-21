@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riodent/models/booking_config_model.dart';
-import 'package:riodent/models/user_model.dart';
 import 'package:riodent/providers/auth_providers.dart';
 import 'package:riodent/providers/request_providers.dart';
 import 'package:riodent/providers/settings_providers.dart';

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/user_providers.dart';
 import '../../theme/app_theme.dart';
@@ -98,20 +100,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final credential = await authRepo.signInWithGoogle();
       final user = credential?.user;
       if (user != null) {
-        // Create user record if first-time user
-        final existing = await userRepo.getUser(user.uid);
+        // Force refresh ID token so Firestore Web receives the authenticated session
+        try {
+          await user.getIdToken(true);
+        } catch (_) {}
+
+        if (kIsWeb) {
+          // Allow the browser event loop a moment to propagate the auth state to Firestore
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
+
+        // Check if doctor profile exists (with retry for web token sync)
+        UserModel? existing;
+        for (int i = 0; i < 3; i++) {
+          try {
+            existing = await userRepo.getUser(user.uid);
+            break;
+          } catch (err) {
+            debugPrint('Attempt ${i + 1} fetching user profile: $err');
+            if (i == 2) break;
+            await Future.delayed(const Duration(milliseconds: 300));
+          }
+        }
+
         if (existing == null) {
           final doctorName = user.displayName?.trim().isNotEmpty == true
               ? user.displayName!.trim()
               : 'Doctor';
-          await userRepo.createUser(
-            uid: user.uid,
-            displayName: doctorName,
-            email: user.email,
-            phone: user.phoneNumber ?? '',
-            clinicName: '',
-            clinicAddress: '',
-          );
+          try {
+            await userRepo.createUser(
+              uid: user.uid,
+              displayName: doctorName,
+              email: user.email,
+              phone: user.phoneNumber ?? '',
+              clinicName: '',
+              clinicAddress: '',
+            );
+          } catch (err) {
+            debugPrint('Notice on initial profile creation: $err');
+          }
         }
       }
     } catch (e) {
@@ -144,18 +171,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
         final user = credential.user;
         if (user != null) {
+          try {
+            await user.getIdToken(true);
+          } catch (_) {}
+          if (kIsWeb) {
+            await Future.delayed(const Duration(milliseconds: 250));
+          }
+
           final doctorName = _nameController.text.trim().isNotEmpty
               ? _nameController.text.trim()
               : 'Doctor';
           final clinicName = _clinicController.text.trim();
 
-          await userRepo.createUser(
-            uid: user.uid,
-            displayName: doctorName,
-            clinicName: clinicName,
-            clinicAddress: '',
-            email: user.email,
-          );
+          try {
+            await userRepo.createUser(
+              uid: user.uid,
+              displayName: doctorName,
+              clinicName: clinicName,
+              clinicAddress: '',
+              email: user.email,
+            );
+          } catch (err) {
+            debugPrint('Notice creating email profile: $err');
+          }
           // Directly proceeds to Home via router state listener
         }
       } else {
